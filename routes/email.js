@@ -24,9 +24,9 @@ router.post('/', async (req, res) => {
       });
     } else if (platform === 'custom') {
       transporter = nodemailer.createTransport({
-        host: 'smtp.ethereal.email',
-        port: 465,
-        secure: true,
+        host: 'terene.kr',
+        port: 587,
+        secure: false,
         auth: {
           user: process.env.CUSTOM_EMAIL_USER,
           pass: process.env.CUSTOM_EMAIL_PASS,
