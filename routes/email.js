@@ -2,27 +2,44 @@ const express = require('express');
 const nodemailer = require('nodemailer');
 const router = express.Router();
 
-// SMTP 설정
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.SENDER_EMAIL_USER,
-    pass: process.env.SENDER_EMAIL_PASS,
-  },
-});
-
 router.post('/', async (req, res) => {
-  const { receiver_email, email_message, email_title } = req.body;
+  const { receiver_email, email_message, email_title, platform } = req.body;
 
-  if (!receiver_email || !email_message) {
-    return res.status(400).json({ error: 'receiver_email과 email_message는 필수입니다.' });
+  if (!receiver_email || !email_message || !platform) {
+    return res.status(400).json({
+      error: 'receiver_email, email_message, platform은 필수입니다.',
+    });
   }
 
+  let transporter;
+
   try {
+    if (platform === 'gmail') {
+      transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: process.env.SENDER_EMAIL_USER,
+          pass: process.env.SENDER_EMAIL_PASS,
+        },
+      });
+    } else if (platform === 'custom') {
+      transporter = nodemailer.createTransport({
+        host: 'smtp.ethereal.email',
+        port: 465,
+        secure: true,
+        auth: {
+          user: process.env.CUSTOM_EMAIL_USER,
+          pass: process.env.CUSTOM_EMAIL_PASS,
+        },
+      });
+    } else {
+      return res.status(400).json({ error: '지원하지 않는 platform입니다.' });
+    }
+
     await transporter.sendMail({
-      from: `"TERENE" <${process.env.SENDER_EMAIL_USER}>`,
+      from: `"TERENE" <${platform === 'gmail' ? process.env.SENDER_EMAIL_USER : process.env.CUSTOM_EMAIL_USER}>`,
       to: receiver_email,
-      subject: email_title || '[TERENE] 알림 메일',
+      subject: email_title,
       text: email_message,
     });
 
