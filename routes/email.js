@@ -31,6 +31,7 @@ router.post('/', async (req, res) => {
           user: process.env.CUSTOM_EMAIL_USER,
           pass: process.env.CUSTOM_EMAIL_PASS,
         },
+        authMethod: 'LOGIN', // 또는 'PLAIN'
       });
     } else {
       return res.status(400).json({ error: '지원하지 않는 platform입니다.' });
