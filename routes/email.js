@@ -28,17 +28,17 @@ router.post('/', async (req, res) => {
         port: 465,
         secure: true,
         auth: {
-          user: process.env.CUSTOM_EMAIL_USER,
-          pass: process.env.CUSTOM_EMAIL_PASS,
+          user: process.env.SENDER_EMAIL_USER,
+          pass: process.env.SENDER_EMAIL_PASS,
         },
-        authMethod: 'LOGIN', // 또는 'PLAIN'
+        // authMethod: 'LOGIN', // 또는 'PLAIN'
       });
     } else {
       return res.status(400).json({ error: '지원하지 않는 platform입니다.' });
     }
 
     await transporter.sendMail({
-      from: `"TERENE" <${platform === 'gmail' ? process.env.SENDER_EMAIL_USER : process.env.CUSTOM_EMAIL_USER}>`,
+      from: `"TERENE" <${process.env.SENDER_EMAIL_USER}>`,
       to: receiver_email,
       subject: email_title,
       text: email_message,
