@@ -24,9 +24,9 @@ router.post('/', async (req, res) => {
       });
     } else if (platform === 'custom') {
       transporter = nodemailer.createTransport({
-        host: 'terene.kr',
-        port: 587,
-        secure: false,
+        host: 'smtp.dooray.com',
+        port: 465,
+        secure: true,
         auth: {
           user: process.env.CUSTOM_EMAIL_USER,
           pass: process.env.CUSTOM_EMAIL_PASS,
