@@ -4,8 +4,8 @@ const sendScheduledEmail = require('./sendEmail');
 const sendScheduledSMS = require('./sendSMS');
 
 function startScheduledJobs() {
-  cron.schedule('35 * * * *', async () => {
-    console.log('⏰ 매시간 35분 자동 발송 시작');
+  cron.schedule('45 * * * *', async () => {
+    console.log('⏰ 매시간 45분 자동 발송 시작');
 
     try {
       // API에서 주문 데이터 가져오기
@@ -17,17 +17,17 @@ function startScheduledJobs() {
 
       // 이메일 전송
       await sendScheduledEmail({
-        to: 'overjoy1008@google.com',
+        to: 'overjoy1008@gmail.com',
         subject: '자동 메일',
         message: `주문 목록:\n\n${orderString}`,
         platform: 'gmail',  // 관리자 이메일, 즉 from 주소
       });
 
       // 문자 전송
-      await sendScheduledSMS({
-        to: '01023705710',
-        message: '[자동 문자] 오늘도 힘내세요! 💪',
-      });
+    //   await sendScheduledSMS({
+    //     to: '01023705710',
+    //     message: '[자동 문자] 오늘도 힘내세요! 💪',
+    //   });
 
     } catch (error) {
       console.error('❌ 자동 작업 중 에러 발생:', error.message);
