@@ -34,9 +34,9 @@ function startScheduledJobs() {
             return Math.abs(total - target) <= margin;
         };
 
-        const is3PM = isAround(kstHours, kstMinutes, 15, 0);
-        const is230PM = isAround(kstHours, kstMinutes, 14, 30);
-        const is1030AM = isAround(kstHours, kstMinutes, 10, 30);
+        // const is3PM = isAround(kstHours, kstMinutes, 15, 0);
+        // const is230PM = isAround(kstHours, kstMinutes, 14, 30);
+        // const is1030AM = isAround(kstHours, kstMinutes, 10, 30);
 
         const generateDayBeforeCheckinMessage = (order) => {
             return `[TERENE UNMU]
@@ -89,7 +89,18 @@ TERENE의 공간에서 ${order.reserver_name}님을 다시 만날 날을 기다�
         }
 
         for (const order of acceptedOrders) {
-            if (is3PM) {
+            const checkinDate = new Date(order.start_date);
+            const checkoutDate = new Date(order.end_date);
+            const today = new Date(kst.getFullYear(), kst.getMonth(), kst.getDate());
+            const dayBeforeCheckin = new Date(checkinDate);
+            dayBeforeCheckin.setDate(dayBeforeCheckin.getDate() - 1);
+            const isSameDate = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+            const shouldSendDayBeforeCheckin = isAround(kstHours, kstMinutes, 15, 0) && isSameDate(today, dayBeforeCheckin);
+            const shouldSend30mBeforeCheckin = isAround(kstHours, kstMinutes, 14, 30) && isSameDate(today, checkinDate);
+            const shouldSend30mBeforeCheckout = isAround(kstHours, kstMinutes, 10, 30) && isSameDate(today, checkoutDate);
+
+            if (shouldSendDayBeforeCheckin) {
                 const msg = generateDayBeforeCheckinMessage(order);
                 await sendScheduledEmail({
                     to: order.reserver_email,
@@ -115,7 +126,7 @@ TERENE의 공간에서 ${order.reserver_name}님을 다시 만날 날을 기다�
                 });
             }
 
-            if (is230PM) {
+            if (shouldSend30mBeforeCheckin) {
                 const msg = generate30mBeforeCheckinMessage(order);
                 await sendScheduledEmail({
                     to: order.reserver_email,
@@ -141,7 +152,7 @@ TERENE의 공간에서 ${order.reserver_name}님을 다시 만날 날을 기다�
                 });
             }
 
-            if (is1030AM) {
+            if (shouldSend30mBeforeCheckout) {
                 const msg = generate30mBeforeCheckoutMessage(order);
                 await sendScheduledEmail({
                     to: order.reserver_email,
