@@ -99,6 +99,9 @@ TERENE의 공간에서 ${order.reserver_name}님을 다시 만날 날을 기다�
             const shouldSendDayBeforeCheckin = isAround(kstHours, kstMinutes, 15, 0) && isSameDate(today, dayBeforeCheckin);
             const shouldSend30mBeforeCheckin = isAround(kstHours, kstMinutes, 14, 30) && isSameDate(today, checkinDate);
             const shouldSend30mBeforeCheckout = isAround(kstHours, kstMinutes, 10, 30) && isSameDate(today, checkoutDate);
+            if (!shouldSendDayBeforeCheckin && !shouldSend30mBeforeCheckin && !shouldSend30mBeforeCheckout) {
+                continue;
+            }
 
             if (shouldSendDayBeforeCheckin) {
                 const msg = generateDayBeforeCheckinMessage(order);
