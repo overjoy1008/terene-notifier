@@ -4,8 +4,8 @@ const sendScheduledEmail = require('./sendEmail');
 const sendScheduledSMS = require('./sendSMS');
 
 function startScheduledJobs() {
-  cron.schedule('25 17 * * *', async () => {
-    console.log('⏰ 오후 5시 25분 자동 발송 시작');
+  cron.schedule('35 * * * *', async () => {
+    console.log('⏰ 매시간 35분 자동 발송 시작');
 
     try {
       // API에서 주문 데이터 가져오기
