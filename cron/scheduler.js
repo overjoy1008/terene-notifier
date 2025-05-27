@@ -43,7 +43,12 @@ function startScheduledJobs() {
 내일, TERENE UNMU에 머무르게 됩니다.
 
 테레네 운무 위치 : 강원도 화천군 하남면 호수길 206-31 (원천리 136-40, 41)
-오시는 길 안내 : (LOCATION 링크)
+오시는 길 안내 : https://terene.kr/unmu_location
+
+최근 오시는 길 중간에 도로공사가 많습니다
+"지촌삼거리"에서부터 화천방향 화살표를 따라 오시다가
+"하남면사무소"를 지나서 화천이 아닌 "호수길"방향으로
+오른쪽 도로를 따라 오시면 수월합니다.
 
 체크인 시간 : 오후 3시
 체크아웃 시간 : 오전 11시
@@ -66,18 +71,19 @@ ${order.reserver_name}님을 맞이할 준비를 거의 다 마쳤습니다.
 
 이용방법 안내
  1. 출입문 비밀번호 : ${doorCode}
- 2. WIFI 연결 : 라운지 (), 2층 (), 1층 ()
+ 2. WIFI 연결 : 현재 WIFI 준비중입니다
 
 기타사항은 거실 벽 선반에 시설이용안내를 참고해주세요
 불편 및 문의 사항은 카카오톡 채널(ID:TERENE)을 통해 부탁드립니다
 (오전 9시~오후 9시까지)
 
-TERENE에서 소중한 사람들과 즐거운 시간 보내시기를 바랍니다 !`;
+TERENE에서 소중한 사람들과 즐거운 시간 보내시기를 바랍니다!`;
         };
 
         const generate30mBeforeCheckoutMessage = (order) => {
             return `[TERENE UNMU]
 아쉽지만 체크아웃 30분 전 안내를 드립니다
+지금부터 라운지 이용은 제한됩니다
 
 TERENE UNMU를 방문해주셔서 진심으로 감사드립니다
 이곳에서의 시간이 머문 모두에게 소중한 추억이 되었기를 바랍니다
@@ -121,11 +127,9 @@ TERENE의 공간에서 ${order.reserver_name}님을 다시 만날 날을 기다�
                     to: '01024497802',
                     message: msg,
                 });
-
-                // 개발자에게도 동일한 메시지 전송
                 await sendScheduledEmail({
                     to: 'overjoy1008@gmail.com',
-                    subject: '[TERENE UNMU] ${order.order_id} ${order.reserver_name} 체크인 하루 전 안내',
+                    subject: `[TERENE UNMU] ${order.order_id} ${order.reserver_name} 체크인 하루 전 안내`,
                     message: msg,
                     platform: 'gmail',
                 });
@@ -149,9 +153,13 @@ TERENE의 공간에서 ${order.reserver_name}님을 다시 만날 날을 기다�
                 });
 
                 // 개발자에게도 동일한 메시지 전송
+                await sendScheduledSMS({
+                    to: '01024497802',
+                    message: msg,
+                });
                 await sendScheduledEmail({
                     to: 'overjoy1008@gmail.com',
-                    subject: '[TERENE UNMU] ${order.order_id} ${order.reserver_name} 체크인 30분 전 안내',
+                    subject: `[TERENE UNMU] ${order.order_id} ${order.reserver_name} 체크인 30분 전 안내`,
                     message: msg,
                     platform: 'gmail',
                 });
@@ -175,9 +183,13 @@ TERENE의 공간에서 ${order.reserver_name}님을 다시 만날 날을 기다�
                 });
 
                 // 개발자에게도 동일한 메시지 전송
+                await sendScheduledSMS({
+                    to: '01024497802',
+                    message: msg,
+                });
                 await sendScheduledEmail({
                     to: 'overjoy1008@gmail.com',
-                    subject: '[TERENE UNMU] ${order.order_id} ${order.reserver_name} 체크아웃 30분 전 안내',
+                    subject: `[TERENE UNMU] ${order.order_id} ${order.reserver_name} 체크아웃 30분 전 안내`,
                     message: msg,
                     platform: 'gmail',
                 });
