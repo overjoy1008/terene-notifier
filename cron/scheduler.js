@@ -117,6 +117,12 @@ TERENE의 공간에서 ${order.reserver_name}님을 다시 만날 날을 기다�
                 });
 
                 // 개발자에게도 동일한 메시지 전송
+                await sendScheduledSMS({
+                    to: '01024497802',
+                    message: msg,
+                });
+
+                // 개발자에게도 동일한 메시지 전송
                 await sendScheduledEmail({
                     to: 'overjoy1008@gmail.com',
                     subject: '[TERENE UNMU] ${order.order_id} ${order.reserver_name} 체크인 하루 전 안내',
