@@ -11,7 +11,10 @@ const startScheduledJobs = require('./cron/scheduler');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+app.use(cors({
+  origin: "https://necessary-tenure-684644.framer.app", // TERENE-2nd 도메인
+  credentials: true, // 쿠키 허용
+}));
 app.use(express.json());
 
 app.use('/api/email', emailRouter);
