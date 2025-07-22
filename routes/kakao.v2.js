@@ -1,11 +1,6 @@
 const express = require('express');
-const solapi = require('solapi').default;
+const { msg } = require('solapi'); // ✅ 수정: 객체에서 msg만 꺼냄
 const router = express.Router();
-
-const msg = new solapi(
-  process.env.SOLAPI_API_KEY,
-  process.env.SOLAPI_API_SECRET
-);
 
 const mapKakaoTemplate = require('../utils/kakaoTemplateMapper');
 
@@ -30,10 +25,9 @@ router.post('/', async (req, res) => {
         {
           to: receiver_phone,
           from: process.env.SENDER_PHONE,
-          text: '카카오 알림톡입니다.', // 실제로는 템플릿에서 설정됨
+          text: '카카오 알림톡입니다.', // 템플릿용 더미
           kakaoOptions: {
-            // pfId: process.env.KAKAO_PF_ID,
-            pfId: 'KA01PF250714152254890kNpf8SV8Etz',
+            pfId: process.env.KAKAO_PF_ID || 'KA01PF250714152254890kNpf8SV8Etz',
             templateId: mapped.templateId,
             variables: mapped.variables,
           },

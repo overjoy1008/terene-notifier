@@ -6,7 +6,7 @@ const router = express.Router()
 
 // const JWT_SECRET = process.env.JWT_SECRET || "supersecret"
 const JWT_SECRET = "vaaddar2025!"
-const JWT_EXPIRES = "5m" // 5분
+const JWT_EXPIRES = "60m" // 60분
 
 router.post("/login", async (req, res) => {
     const { id, password } = req.body
@@ -41,7 +41,7 @@ router.post("/login", async (req, res) => {
             httpOnly: true,
             secure: true, // 로컬에서 테스트할 경우 false
             sameSite: "None", // CORS 요청에서 쿠키를 허용
-            maxAge: 5 * 60 * 1000, // 5분
+            maxAge: 60 * 60 * 1000, // 60분
         })
 
         res.json({ message: "Login successful" })
