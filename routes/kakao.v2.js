@@ -1,0 +1,52 @@
+const express = require('express');
+const solapi = require('solapi').default;
+const router = express.Router();
+
+const msg = new solapi(
+  process.env.SOLAPI_API_KEY,
+  process.env.SOLAPI_API_SECRET
+);
+
+const mapKakaoTemplate = require('../utils/kakaoTemplateMapper');
+
+router.post('/', async (req, res) => {
+  const { receiver_phone, template_type, params } = req.body;
+
+  if (!receiver_phone || !template_type || !params) {
+    return res.status(400).json({
+      error: 'receiver_phone, template_type, params는 필수입니다.',
+    });
+  }
+
+  const mapped = mapKakaoTemplate(template_type, params);
+
+  if (!mapped) {
+    return res.status(400).json({ error: '유효하지 않은 template_type입니다.' });
+  }
+
+  try {
+    await msg.sendOne({
+      messages: [
+        {
+          to: receiver_phone,
+          from: process.env.SENDER_PHONE,
+          text: '카카오 알림톡입니다.', // 실제로는 템플릿에서 설정됨
+          kakaoOptions: {
+            // pfId: process.env.KAKAO_PF_ID,
+            pfId: 'KA01PF250714152254890kNpf8SV8Etz',
+            templateId: mapped.templateId,
+            variables: mapped.variables,
+          },
+        },
+      ],
+    });
+
+    console.log(`✅ 알림톡 전송 완료: ${receiver_phone}`);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('❌ 알림톡 전송 실패:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+module.exports = router;
