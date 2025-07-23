@@ -42,6 +42,8 @@ router.post('/', async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error('❌ 알림톡 전송 실패:');
+    console.error('🔸 api key:', process.env.SOLAPI_API_KEY);
+    console.error('🔸 api secret:', process.env.SOLAPI_API_SECRET);
     console.error('🔸 message:', error.message);
     if (error.response) {
       console.error('🔸 status:', error.response.status);
