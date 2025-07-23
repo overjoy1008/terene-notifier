@@ -1,11 +1,11 @@
 const express = require('express');
-const { SolapiMessageService } = require('solapi'); // ✅ 수정: 객체에서 msg만 꺼냄
+const { SolapiMessageService } = require('solapi');
 const router = express.Router();
 const mapKakaoTemplate = require('../utils/kakaoTemplateMapper');
 
 const messageService = new SolapiMessageService(
-  'SOLAPI_API_KEY',
-  'SOLAPI_API_SECRET',
+  process.env.SOLAPI_API_KEY,
+  process.env.SOLAPI_API_SECRET
 );
 
 router.post('/', async (req, res) => {
