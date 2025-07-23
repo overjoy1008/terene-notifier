@@ -41,8 +41,16 @@ router.post('/', async (req, res) => {
     console.log(`✅ 알림톡 전송 완료: ${receiver_phone}`);
     res.json({ success: true });
   } catch (error) {
-    console.error('❌ 알림톡 전송 실패:', error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error('❌ 알림톡 전송 실패:');
+    console.error('🔸 message:', error.message);
+    if (error.response) {
+      console.error('🔸 status:', error.response.status);
+      console.error('🔸 data:', error.response.data);
+    }
+    res.status(500).json({
+      success: false,
+      error: error.response?.data || error.message,
+    });
   }
 });
 
