@@ -64,7 +64,11 @@ router.get("/me", (req, res) => {
 })
 
 router.post("/logout", (req, res) => {
-    res.clearCookie("token")
+    res.clearCookie("token", {
+        httpOnly: true,
+        secure: true, // 서버가 https일 경우 true
+        sameSite: "None", // 로그인 시 설정한 sameSite와 반드시 일치
+    })
     res.json({ message: "Logged out" })
 })
 
