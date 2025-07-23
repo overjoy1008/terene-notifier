@@ -24,7 +24,7 @@ function mapKakaoTemplate(templateType, params) {
 
   const variableObject = {};
   for (const key of template.variables) {
-    variableObject[`#{${key}}`] = params[key] ?? "";
+    variableObject[`#{${key}}`] = String(params[key] ?? "");
   }
 
   return {
