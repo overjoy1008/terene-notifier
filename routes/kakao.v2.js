@@ -1,8 +1,12 @@
 const express = require('express');
-const { msg } = require('solapi'); // ✅ 수정: 객체에서 msg만 꺼냄
+const { SolapiMessageService } = require('solapi'); // ✅ 수정: 객체에서 msg만 꺼냄
 const router = express.Router();
-
 const mapKakaoTemplate = require('../utils/kakaoTemplateMapper');
+
+const messageService = new SolapiMessageService(
+  'SOLAPI_API_KEY',
+  'SOLAPI_API_SECRET',
+);
 
 router.post('/', async (req, res) => {
   const { receiver_phone, template_type, params } = req.body;
@@ -20,20 +24,19 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    await msg.sendOne({
-      messages: [
-        {
-          to: receiver_phone,
-          from: process.env.SENDER_PHONE,
-          text: '카카오 알림톡입니다.', // 템플릿용 더미
-          kakaoOptions: {
-            pfId: process.env.KAKAO_PF_ID || 'KA01PF250714152254890kNpf8SV8Etz',
-            templateId: mapped.templateId,
-            variables: mapped.variables,
-          },
+    await messageService.sendOne(
+      {
+        to: receiver_phone,
+        from: process.env.SENDER_PHONE,
+        text: '카카오 알림톡입니다.', // 템플릿용 더미
+        kakaoOptions: {
+          // pfId: process.env.KAKAO_PF_ID,
+          pfId: 'KA01PF250714152254890kNpf8SV8Etz',
+          templateId: mapped.templateId,
+          variables: mapped.variables,
         },
-      ],
-    });
+      }
+    );
 
     console.log(`✅ 알림톡 전송 완료: ${receiver_phone}`);
     res.json({ success: true });
