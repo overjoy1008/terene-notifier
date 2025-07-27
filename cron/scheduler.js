@@ -194,7 +194,11 @@ TERENE ${order.order_product}를 방문해주셔서 진심으로 감사드립니
                     platform: 'gmail',
                 });
                 await sendScheduledSMS({
-                    to: '01024497802',
+                    to: '01028891548',
+                    message: admin_msg,
+                });
+                await sendScheduledSMS({
+                    to: '01074994590',
                     message: admin_msg,
                 });
             }
