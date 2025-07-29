@@ -3,11 +3,17 @@ const nodemailer = require('nodemailer');
 const router = express.Router();
 
 router.post('/', async (req, res) => {
-  const { receiver_email, email_message, email_title, platform } = req.body;
+  const {
+    receiver_email,
+    email_message,    // text version (optional fallback)
+    email_html,       // html version (optional)
+    email_title,
+    platform,
+  } = req.body;
 
-  if (!receiver_email || !email_message || !platform) {
+  if (!receiver_email || !email_title || !platform) {
     return res.status(400).json({
-      error: 'receiver_email, email_message, platform은 필수입니다.',
+      error: 'receiver_email, email_title, platform은 필수입니다.',
     });
   }
 
@@ -31,18 +37,31 @@ router.post('/', async (req, res) => {
           user: process.env.SENDER_EMAIL_USER,
           pass: process.env.SENDER_EMAIL_PASS,
         },
-        // authMethod: 'LOGIN', // 또는 'PLAIN'
+        // authMethod: 'LOGIN',
       });
     } else {
       return res.status(400).json({ error: '지원하지 않는 platform입니다.' });
     }
 
-    await transporter.sendMail({
+    // Compose mail options
+    const mailOptions = {
       from: `"TERENE" <${process.env.SENDER_EMAIL_USER}>`,
       to: receiver_email,
       subject: email_title,
-      text: email_message,
-    });
+    };
+
+    if (email_html) {
+      mailOptions.html = email_html;
+      if (email_message) {
+        mailOptions.text = email_message; // optional fallback
+      }
+    } else if (email_message) {
+      mailOptions.text = email_message;
+    } else {
+      return res.status(400).json({ error: 'email_message 또는 email_html 중 하나는 필요합니다.' });
+    }
+
+    await transporter.sendMail(mailOptions);
 
     console.log(`✅ 이메일 전송 완료: ${receiver_email}`);
     res.json({ success: true });
