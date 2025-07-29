@@ -107,6 +107,7 @@ router.post("/login", async (req, res) => {
             birthdate: user.birthdate,
             phone: user.phone,
             email: user.email,
+            remarks: user.remarks,
         }
 
         // Determine expiration
