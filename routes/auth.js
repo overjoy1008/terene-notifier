@@ -104,6 +104,7 @@ router.post("/login", async (req, res) => {
             membership_number: user.membership_number,
             membership: user.membership_grade,
             name: user.name_kor,
+            birthdate: user.birthdate,
             phone: user.phone,
             email: user.email,
         }
