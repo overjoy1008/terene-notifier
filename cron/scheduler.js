@@ -5,7 +5,7 @@ const sendScheduledSMS = require('./sendSMS');
 require('dotenv').config();
 
 function startScheduledJobs() {
-  cron.schedule('0,30 * * * *', async () => {
+  cron.schedule('0,15,30,45 * * * *', async () => {
 
     try {
         if (  // 개발자용 테스트 환경 render 서버에서 실제 고객에게 연락을 보내지 않도록 Ban하기
@@ -106,25 +106,6 @@ ${order.reserver_name}님, 체크인 정보를 전달드립니다.
 이용 간 불편 및 문의 사항은 카카오톡채널(ID : TERENE) 문의를 통해 부탁드립니다`;
         };
 
-//         const message_H_admin = (order) => {
-//             return `[TERENE ${order.order_product}]
-// ${order.reserver_name}님이 3시간 뒤, 입실 예정입니다.
-// 청소/세팅을 마친 라운지 문은 열어두시기 바랍니다.
-
-// 예약정보
-
-// 1. 예약번호 : ${order.order_id}
-// 2. 회원번호 : ${order.membership_number || "비회원 예약"}
-// 3. 이름 : ${order.reserver_name}
-// 4. 연락처 : ${order.reserver_contact}
-// 5. 지점 : TERENE ${order.order_product}
-// 6. 숙박 일정 : ${order.start_date}~${order.end_date}
-// 7. 숙박 인원 : 성인 ${order.adult}명, 아동/유아 ${order.child}명
-// 8. 결제 금액 : ${Number(order.final_price).toLocaleString()}원
-
-// * 자세한 정보는 관리자 페이지( https://terene.kr/admin-table )에서 확인해주시기 바랍니다.`;
-//         };
-
         const message_I_customer = (order) => {
             return `[TERENE ${order.order_product}]
 아쉽지만 체크아웃 30분 전 안내를 드립니다.
@@ -137,24 +118,6 @@ TERENE ${order.order_product}를 방문해주셔서 진심으로 감사드립니
 
 감사합니다`;
         };
-
-//         const message_I_admin = (order) => {
-//             return `[TERENE ${order.order_product}]
-// ${order.reserver_name}님이 30분 뒤, 퇴실 예정입니다.
-
-// 예약정보
-
-// 1. 예약번호 : ${order.order_id}
-// 2. 회원번호 : ${order.membership_number || "비회원 예약"}
-// 3. 이름 : ${order.reserver_name}
-// 4. 연락처 : ${order.reserver_contact}
-// 5. 지점 : TERENE ${order.order_product}
-// 6. 숙박 일정 : ${order.start_date}~${order.end_date}
-// 7. 숙박 인원 : 성인 ${order.adult}명, 아동/유아 ${order.child}명
-// 8. 결제 금액 : ${Number(order.final_price).toLocaleString()}원
-
-// * 자세한 정보는 관리자 페이지( https://terene.kr/admin-table )에서 확인해주시기 바랍니다.`;
-//         };
 
         for (const order of acceptedOrders) {
             const checkinDate = new Date(order.start_date);
@@ -217,18 +180,6 @@ TERENE ${order.order_product}를 방문해주셔서 진심으로 감사드립니
                     to: order.reserver_contact.replace(/-/g, ''),
                     message: customer_msg,
                 });
-
-                // 관리자에게도 동일한 메시지 전송
-                // await sendScheduledEmail({
-                //     to: 'reserve@terene.kr',
-                //     subject: `[TERENE ${order.order_product}] ${order.order_id || "비회원"} ${order.reserver_name}님 입실 3시간 전 안내`,
-                //     message: admin_msg,
-                //     platform: 'gmail',
-                // });
-                // await sendScheduledSMS({
-                //     to: '01024497802',
-                //     message: admin_msg,
-                // });
             }
 
             // Message I
@@ -245,24 +196,61 @@ TERENE ${order.order_product}를 방문해주셔서 진심으로 감사드립니
                     to: order.reserver_contact.replace(/-/g, ''),
                     message: customer_msg,
                 });
-
-                // 관리리자에게도 동일한 메시지 전송
-                // await sendScheduledEmail({
-                //     to: 'reserve@terene.kr',
-                //     subject: `[TERENE ${order.order_product}] ${order.order_id || "비회원"} ${order.reserver_name}님 퇴실 30분 전 안내`,
-                //     message: admin_msg,
-                //     platform: 'gmail',
-                // });
-                // await sendScheduledSMS({
-                //     to: '01024497802',
-                //     message: admin_msg,
-                // });
             }
         }
 
     } catch (error) {
       console.error('❌ 자동 작업 중 에러 발생:', error.message);
     }
+
+    // 추가 작업: 오래된 pending 예약 삭제
+    try {
+        const v2OrdersResponse = await axios.get('https://terene-db-server.onrender.com/api/v2/orders');
+        const v2Orders = v2OrdersResponse.data;
+
+        const nowKST = new Date(Date.now() + 9 * 60 * 60 * 1000);
+
+        const oldPendingOrders = v2Orders.filter(order => {
+            if (order.reservation_status !== 'pending') return false;
+            const pendingHistory = order.reservation_history?.find(h => h.status === 'pending');
+            if (!pendingHistory || !pendingHistory.timeline) return false;
+            const pendingTime = new Date(pendingHistory.timeline);
+            const diffMinutes = (nowKST - pendingTime) / 1000 / 60;
+            return diffMinutes >= 30;
+        });
+
+        for (const order of oldPendingOrders) {
+            await axios.delete(`https://terene-db-server.onrender.com/api/v2/orders/${order._id}`);
+            console.log(`🗑️ 오래된 pending 예약 삭제됨: ${order._id}`);
+        }
+    } catch (e) {
+        console.error('❌ v2/orders 정리 중 에러:', e.message);
+    }
+
+    // 추가 작업: coupon-instances 만료 처리
+    try {
+        const couponResponse = await axios.get('https://terene-db-server.onrender.com/api/v2/coupon-instances');
+        const coupons = couponResponse.data;
+
+        const nowKST_ISO = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString();
+
+        const expiredCoupons = coupons.filter(coupon =>
+            coupon.status !== 'expired' &&
+            coupon.coupon_due &&
+            new Date(coupon.coupon_due) < new Date(nowKST_ISO)
+        );
+
+        for (const coupon of expiredCoupons) {
+            await axios.put(`https://terene-db-server.onrender.com/api/v2/coupon-instances/${coupon._id}`, {
+                ...coupon,
+                status: 'expired'
+            });
+            console.log(`⌛ 쿠폰 만료 처리됨: ${coupon._id}`);
+        }
+    } catch (e) {
+        console.error('❌ coupon-instances 만료 처리 중 에러:', e.message);
+    }
+
   });
 }
 
