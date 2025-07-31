@@ -10,7 +10,7 @@ router.post("/login", async (req, res) => {
     const { id, password, mode } = req.body // mode 추가
 
     try {
-        const response = await fetch("https://terene-db-server.onrender.com/api/customers")
+        const response = await fetch("https://terene-db-server.onrender.com/api/v2/customers")
         if (!response.ok) throw new Error("DB fetch failed")
 
         const customers = await response.json()
