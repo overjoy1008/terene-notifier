@@ -310,7 +310,7 @@ function startScheduledJobs() {
         const orderParamsG_admin = {
           stay_location: order.stay_location,
           reserver_name: order.stay_info.name,
-          order_id:`${order.order_id} (구 ${order.old_order_id})`,
+          order_id: order.old_order_id ? `${order.order_id} (구 ${order.old_order_id})` : order.order_id,
           membership_number: order.membership_number || "비회원",
           reserver_contact: order.stay_info.contact,
           checkin_date: order.checkin_date,
