@@ -28,6 +28,7 @@ router.post("/login", async (req, res) => {
             membership_number: user.membership_number,
             membership: user.membership_grade,
             phase: user.phase,
+            signup_date: user.signup_date,
             name: user.name_kor,
             birthdate: user.birthdate,
             phone: user.phone,
