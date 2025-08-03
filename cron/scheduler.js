@@ -29,6 +29,17 @@ function startScheduledJobs() {
         a.getMonth() === b.getMonth() &&
         a.getDate() === b.getDate();
 
+      function toKSTISOString(date) {
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        const hh = String(date.getHours()).padStart(2, '0');
+        const min = String(date.getMinutes()).padStart(2, '0');
+        const ss = String(date.getSeconds()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}T${hh}:${min}:${ss}+09:00`;
+      }
+
+
       for (const order of acceptedOrders) {
         const checkinDate = new Date(order.checkin_date);
         const checkoutDate = new Date(order.checkout_date);
@@ -46,7 +57,7 @@ function startScheduledJobs() {
           // 체크인 상태로 전환
           if (isSameDate(today, checkinDate) && order.stay_status !== 'checked_in') {
             const updatedHistory = [
-              { status: 'checked_in', timestamp: kst.toISOString() },
+              { status: 'checked_in', timestamp: toKSTISOString(kst) },
               { status: 'checked_out', timestamp: null },
             ];
             await axios.put(`https://terene-db-server.onrender.com/api/v2/orders/${order.order_id}`, {
@@ -62,7 +73,7 @@ function startScheduledJobs() {
             const checkedInRecord = stayHistory.find(s => s.status === 'checked_in') || { timestamp: null };
             const updatedHistory = [
               { status: 'checked_in', timestamp: checkedInRecord.timestamp },
-              { status: 'checked_out', timestamp: kst.toISOString() },
+              { status: 'checked_out', timestamp: toKSTISOString(kst) },
             ];
             await axios.put(`https://terene-db-server.onrender.com/api/v2/orders/${order.order_id}`, {
               ...order,
