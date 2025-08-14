@@ -81,8 +81,8 @@ function computeIssuedAtAndDueForStorage() {
   // +1년 -1일 (KST 기준)
   const dueKST = new Date(issuedAtKST.getTime());
   dueKST.setUTCFullYear(dueKST.getUTCFullYear() + 1);
-  const oneDayMs = 24 * 60 * 60 * 1000;
-  dueKST.setTime(dueKST.getTime() - oneDayMs);
+  const oneSecondMs = 1000;
+  dueKST.setTime(dueKST.getTime() - oneSecondMs);
 
   return {
     issued_at: kstDateToUTCStorageISO(issuedAtKST), // 예: 'YYYY-MM-DDT00:00:00Z'
