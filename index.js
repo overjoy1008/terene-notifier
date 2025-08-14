@@ -12,6 +12,7 @@ const smsRouterV2 = require('./routes/sms.v2');
 const kakaoRouterV2 = require('./routes/kakao.v2');
 
 const startScheduledJobs = require('./cron/scheduler');
+const startUpdaterJobs = require('./cron/updater');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -43,7 +44,8 @@ app.use('/api/kakao/v2', kakaoRouterV2);
 
 app.use("/api/auth", authRouter);
 
-startScheduledJobs();
+startScheduledJobs();  // 기존 스케줄러
+startUpdaterJobs();    // 신규 업데이터 스케줄러
 
 app.listen(PORT, () => {
   console.log(`✅ 서버 실행 중: http://localhost:${PORT}`);

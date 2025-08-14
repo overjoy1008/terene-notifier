@@ -3,7 +3,7 @@ const axios = require('axios');
 require('dotenv').config();
 
 function startScheduledJobs() {
-  cron.schedule('0,15,30,45 * * * *', async () => {
+  cron.schedule('0,30 * * * *', async () => {
     try {
       if (
         process.env.SENDER_EMAIL_USER === 'overjoy1008@gmail.com' ||
