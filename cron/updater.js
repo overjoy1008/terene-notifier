@@ -1,6 +1,7 @@
 // cron/updater.js
 const cron = require('node-cron');
 const axios = require('axios');
+const crypto = require('crypto');
 require('dotenv').config();
 
 const DB_BASE_URL = process.env.DB_BASE_URL || 'https://terene-db-server.onrender.com';
@@ -19,28 +20,32 @@ function nowKST() {
   return new Date(now.getTime() + 9 * 60 * 60 * 1000);
 }
 
-/** 오늘 자정(KST) Date 객체 */
-function startOfTodayKST() {
+/** 'YYYY-MM-DD' (KST 날짜) */
+function todayKSTDateOnly() {
   const kst = nowKST();
-  return new Date(Date.UTC(
-    kst.getUTCFullYear(),
-    kst.getUTCMonth(),
-    kst.getUTCDate(),
-    -9, 0, 0, 0 // UTC 기준으로 -9h = KST 자정
-  ));
+  const y = kst.getUTCFullYear();
+  const m = String(kst.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(kst.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
-/** Date → 'YYYY-MM-DDTHH:mm:ss+09:00' (KST 고정) */
+/** KST 시각 HH:mm:ss (문자열) */
+function nowKSTTimeHMS() {
+  const kst = nowKST();
+  const hh = String(kst.getUTCHours()).padStart(2, '0');
+  const mm = String(kst.getUTCMinutes()).padStart(2, '0');
+  const ss = String(kst.getUTCSeconds()).padStart(2, '0');
+  return `${hh}:${mm}:${ss}`;
+}
+
+/** Date → 'YYYY-MM-DDTHH:mm:ss+09:00' (UTC 필드를 그대로 표기 +09:00) */
 function toKSTISO(dateObj) {
-  const kstMs = dateObj.getTime(); // 내부 UTC ms
   const y = dateObj.getUTCFullYear();
   const m = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
   const d = String(dateObj.getUTCDate()).padStart(2, '0');
   const hh = String(dateObj.getUTCHours()).padStart(2, '0');
   const mm = String(dateObj.getUTCMinutes()).padStart(2, '0');
   const ss = String(dateObj.getUTCSeconds()).padStart(2, '0');
-
-  // dateObj가 이미 KST 자정 등으로 맞춰져 있게 만들었으므로 +09:00을 명시만 합니다.
   return `${y}-${m}-${d}T${hh}:${mm}:${ss}+09:00`;
 }
 
@@ -57,6 +62,83 @@ function parseAsKST(dateStr) {
   return isNaN(d.getTime()) ? null : d;
 }
 
+/** 오늘 00:00:00 KST ISO 와 만료일(issued_at +1y -1d) ISO 계산 */
+function computeIssuedAtAndDueISO() {
+  // 오늘 KST 자정
+  const ymd = todayKSTDateOnly();
+  const issuedAt = new Date(`${ymd}T00:00:00+09:00`);
+  // +1년
+  const plusOneYear = new Date(issuedAt.getTime());
+  plusOneYear.setUTCFullYear(plusOneYear.getUTCFullYear() + 1);
+  // -1일
+  const due = new Date(plusOneYear.getTime() - 24 * 60 * 60 * 1000);
+
+  return {
+    issued_at: toKSTISO(issuedAt),
+    coupon_due: toKSTISO(due),
+  };
+}
+
+/** 랜덤 문자열 생성 (alphabet에서만) */
+function randomString(len, alphabet) {
+  let out = '';
+  const n = alphabet.length;
+  for (let i = 0; i < len; i++) out += alphabet[Math.floor(Math.random() * n)];
+  return out;
+}
+
+/** 8~10 중 임의 길이 */
+function randomLength8to10() {
+  const lens = [8, 9, 10];
+  return lens[Math.floor(Math.random() * lens.length)];
+}
+
+/** 새 coupon_code 생성: 8~10, (l, I, O, 0) 제외 */
+function generateNewCouponCode() {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz123456789'; // I,O,l,0 제외
+  return randomString(randomLength8to10(), alphabet);
+}
+
+/** base64url 해시에서 -,_ 제거 후 영숫자만 남겨 자르기 */
+function hashAlphaNum(seed, len) {
+  let s = crypto.createHash('sha256').update(seed).digest('base64url').replace(/[-_]/g, '');
+  while (s.length < len) s += s; // 길이 보강
+  return s.slice(0, len);
+}
+
+/**
+ * 결정적 새 coupon_instance_id 생성:
+ * 포맷: CI-YYMMDD-HHMM-XXXXXXXX
+ * - 날짜/시각: "지금 KST" (요구사항 유지)
+ * - 마지막 8자: (원본ID + issued_at) 기반 해시 → 동일 쿠폰 재생성 시 항상 동일
+ */
+function generateNewInstanceIdKST(original, issued_at_iso) {
+  const kst = nowKST();
+  const yy = String(kst.getUTCFullYear()).slice(-2);
+  const mm = String(kst.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(kst.getUTCDate()).padStart(2, '0');
+  const HH = String(kst.getUTCHours()).padStart(2, '0');
+  const MM = String(kst.getUTCMinutes()).padStart(2, '0');
+
+  const baseId = original.coupon_instance_id || original.id || JSON.stringify(original);
+  const rand = hashAlphaNum(`${baseId}|${issued_at_iso}`, 8);
+  return `CI-${yy}${mm}${dd}-${HH}${MM}-${rand}`;
+}
+
+/** 생성 요청 전에 복제 원본의 위험 필드 제거 */
+function sanitizeForCreate(obj) {
+  const copy = { ...obj };
+  delete copy.id;
+  delete copy._id;
+  delete copy.created_at;
+  delete copy.updated_at;
+  delete copy.coupon_instance_id;
+  delete copy.status;
+  delete copy.issued_at;
+  delete copy.coupon_due;
+  return copy;
+}
+
 async function fetchAllCouponInstances() {
   const { data } = await axiosInstance.get('/api/v2/coupon-instances');
   return Array.isArray(data) ? data : [];
@@ -70,7 +152,7 @@ async function putExpired(coupon) {
   }
 
   const url = `/api/v2/coupon-instances/${encodeURIComponent(id)}`;
-  const payload = { ...coupon, status: 'expired' }; // 컨트롤러 upsert 패턴에 맞춤
+  const payload = { ...coupon, status: 'expired' };
 
   console.log('➡️  [Updater] PUT(만료) 시작:', id);
   try {
@@ -83,80 +165,16 @@ async function putExpired(coupon) {
   }
 }
 
-/** 랜덤 문자열 생성 (alphabet에서만) */
-function randomString(len, alphabet) {
-  let out = '';
-  const n = alphabet.length;
-  for (let i = 0; i < len; i++) {
-    out += alphabet[Math.floor(Math.random() * n)];
-  }
-  return out;
-}
-
-/** 8~10 중 임의 길이 */
-function randomLength8to10() {
-  const lens = [8, 9, 10];
-  return lens[Math.floor(Math.random() * lens.length)];
-}
-
-/** 새 coupon_instance_id 생성: CI-YYMMDD-HHMM-XXXXXXXX */
-function generateNewInstanceIdKST() {
-  const kst = nowKST();
-  const yy = String(kst.getUTCFullYear()).slice(-2);
-  const mm = String(kst.getUTCMonth() + 1).padStart(2, '0');
-  const dd = String(kst.getUTCDate()).padStart(2, '0');
-  const HH = String(kst.getUTCHours()).padStart(2, '0');
-  const MM = String(kst.getUTCMinutes()).padStart(2, '0');
-
-  const rand = randomString(8, 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789');
-  return `CI-${yy}${mm}${dd}-${HH}${MM}-${rand}`;
-}
-
-/** 새 coupon_code 생성: 8~10, (l, I, O, 0) 제외 */
-function generateNewCouponCode() {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz123456789'; // I,O,l,0 제외
-  return randomString(randomLength8to10(), alphabet);
-}
-
-/** 생성 요청 전에 복제 원본의 위험 필드 제거 */
-function sanitizeForCreate(obj) {
-  const copy = { ...obj };
-  delete copy.id;
-  delete copy._id;
-  delete copy.created_at;
-  delete copy.updated_at;
-  // 기존 PK가 coupon_instance_id라면 새 값으로 덮어쓸 것이므로 여기선 지워도 무방
-  // (아래에서 새 값을 넣습니다)
-  delete copy.coupon_instance_id;
-  delete copy.status;       // 새 상태로 강제
-  delete copy.issued_at;    // 새 발급일로 강제
-  delete copy.coupon_due;   // 새 만료일로 강제
-  // coupon_code는 조건에 따라 null 또는 새 랜덤이므로 아래에서 설정
-  return copy;
-}
-
-/** issued_at(KST 자정)과 coupon_due(issued_at +1년 -1일) 계산 */
-function computeIssuedAtAndDue() {
-  const issuedAt = startOfTodayKST(); // KST 자정
-  // +1년 -1일
-  const plusOneYear = new Date(issuedAt.getTime());
-  plusOneYear.setUTCFullYear(plusOneYear.getUTCFullYear() + 1);
-  const dueMs = plusOneYear.getTime() - 24 * 60 * 60 * 1000;
-  const due = new Date(dueMs);
-
-  return {
-    issued_at: toKSTISO(issuedAt),
-    coupon_due: toKSTISO(due),
-  };
-}
-
 async function postNewFromExpired(original) {
   const base = sanitizeForCreate(original);
-  const newId = generateNewInstanceIdKST();
-  const { issued_at, coupon_due } = computeIssuedAtAndDue();
+  const { issued_at, coupon_due } = computeIssuedAtAndDueISO();
 
   // coupon_code 규칙: 원본이 null -> null, 존재 -> 새 랜덤(8~10, l/I/O/0 제외)
   const newCouponCode = original.coupon_code == null ? null : generateNewCouponCode();
+
+  // 결정적 ID + Idempotency-Key (서버가 지원하면 완벽)
+  const newId = generateNewInstanceIdKST(original, issued_at);
+  const idempotencyKey = `recreate:${(original.coupon_instance_id || original.id || 'na')}|${issued_at}`;
 
   const payload = {
     ...base,
@@ -169,27 +187,45 @@ async function postNewFromExpired(original) {
 
   console.log('🆕 [Updater] POST(새 쿠폰) 시작:', newId);
   try {
-    const { data } = await axiosInstance.post('/api/v2/coupon-instances', payload);
+    const { data } = await axiosInstance.post(
+      '/api/v2/coupon-instances',
+      payload,
+      { headers: { 'Idempotency-Key': idempotencyKey } }
+    );
     console.log('✅ [Updater] 새 쿠폰 생성 완료:', newId);
     return data;
   } catch (err) {
-    console.error('❌ [Updater] POST 실패:', newId, err.response?.status, err.response?.data || err.message);
+    const code = err.response?.status;
+    if (code === 409 || code === 412) {
+      // 409 Conflict (이미 동일 ID 존재) / 412 Precondition Failed 등 → 타 워커가 선점
+      console.warn('ℹ️ [Updater] 이미 동일 새 쿠폰이 생성된 것으로 판단(무시):', newId);
+      return null;
+    }
+    console.error('❌ [Updater] POST 실패:', newId, code, err.response?.data || err.message);
     throw err;
   }
 }
 
-/** 만료 후 복제 생성을 한 번에 처리 */
+/** 프로세스 내 중복 처리를 막기 위한 Set */
+const processingSet = new Set();
+
+/** 만료 후 복제 생성을 한 번에 처리 (동일 쿠폰 동시 진입 방지) */
 async function expireAndClone(coupon) {
-  const id = coupon?.coupon_instance_id || coupon?.id || '(unknown)';
-  const expiredOk = await putExpired(coupon);
-  if (!expiredOk) {
-    console.error('⛔ [Updater] 만료 실패로 복제 생성을 스킵:', id);
+  const key = coupon?.coupon_instance_id || coupon?.id || JSON.stringify(coupon);
+  if (processingSet.has(key)) {
+    console.warn('⏳ [Updater] 이미 처리 중인 쿠폰으로 스킵:', key);
     return;
   }
+  processingSet.add(key);
   try {
+    const expiredOk = await putExpired(coupon);
+    if (!expiredOk) {
+      console.error('⛔ [Updater] 만료 실패로 복제 생성을 스킵:', key);
+      return;
+    }
     await postNewFromExpired(coupon);
-  } catch (err) {
-    console.error('⛔ [Updater] 복제 생성 실패:', id, err.response?.status, err.response?.data || err.message);
+  } finally {
+    processingSet.delete(key);
   }
 }
 
@@ -211,20 +247,29 @@ async function withConcurrency(list, limit, worker) {
   await Promise.all(runners);
 }
 
+/** 같은 프로세스에서 스케줄 중복 실행 방지 */
+let isRunning = false;
+
 function startUpdaterJobs() {
   // 5분마다 실행
   cron.schedule(
     '*/5 * * * *',
     async () => {
-      const tick = new Date().toISOString();
-      console.log(`🔄 [Updater] 쿠폰 만료 점검 시작 @ ${tick}`);
+      if (isRunning) {
+        console.warn('⏭️ [Updater] 이전 작업이 아직 실행 중이어서 이번 주기를 건너뜁니다.');
+        return;
+      }
+      isRunning = true;
+
+      const tick = `${todayKSTDateOnly()} ${nowKSTTimeHMS()}`;
+      console.log(`🔄 [Updater] 쿠폰 만료 점검 시작 @ ${tick} KST`);
 
       try {
         const coupons = await fetchAllCouponInstances();
         const now = nowKST();
 
         // 대상: coupon_due 존재, now(KST)보다 과거 또는 동일 && 이미 expired 아닌 것
-        const targets = coupons.filter((c) => {
+        const tmpTargets = coupons.filter((c) => {
           if (c?.status === 'expired') return false;
           if (!c?.coupon_due) return false;
           const due = parseAsKST(c.coupon_due);
@@ -232,13 +277,24 @@ function startUpdaterJobs() {
           return due.getTime() <= now.getTime();
         });
 
+        // 같은 쿠폰ID가 중복으로 들어오는 경우 1회만 처리
+        const seen = new Set();
+        const targets = tmpTargets.filter((c) => {
+          const k = c?.coupon_instance_id || c?.id;
+          if (!k) return false;
+          if (seen.has(k)) return false;
+          seen.add(k);
+          return true;
+        });
+
         console.log(`📦 [Updater] 전체 ${coupons.length}건 중 만료 대상 ${targets.length}건`);
-        // 변경: 만료 후 복제 생성까지 처리
         await withConcurrency(targets, CONCURRENCY, expireAndClone);
 
         console.log('🏁 [Updater] 쿠폰 만료 점검 + 복제 생성 완료');
       } catch (err) {
         console.error('❌ [Updater] 전체 작업 오류:', err.response?.data || err.message);
+      } finally {
+        isRunning = false;
       }
     },
     { timezone: 'Asia/Seoul' }
