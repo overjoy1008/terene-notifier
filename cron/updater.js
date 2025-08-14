@@ -32,21 +32,10 @@ function todayKSTDateOnly() {
 /** KST 시각 HH:mm:ss (문자열) */
 function nowKSTTimeHMS() {
   const kst = nowKST();
-  const hh = String(kst.getUTCHours()).padStart(2, '0');
+  const hh = String(kst.getUTCFullHours?.() ?? kst.getUTCHours()).padStart(2, '0');
   const mm = String(kst.getUTCMinutes()).padStart(2, '0');
   const ss = String(kst.getUTCSeconds()).padStart(2, '0');
   return `${hh}:${mm}:${ss}`;
-}
-
-/** Date → 'YYYY-MM-DDTHH:mm:ss+09:00' (UTC 필드를 그대로 표기 +09:00) */
-function toKSTISO(dateObj) {
-  const y = dateObj.getUTCFullYear();
-  const m = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
-  const d = String(dateObj.getUTCDate()).padStart(2, '0');
-  const hh = String(dateObj.getUTCHours()).padStart(2, '0');
-  const mm = String(dateObj.getUTCMinutes()).padStart(2, '0');
-  const ss = String(dateObj.getUTCSeconds()).padStart(2, '0');
-  return `${y}-${m}-${d}T${hh}:${mm}:${ss}+09:00`;
 }
 
 /**
@@ -62,20 +51,42 @@ function parseAsKST(dateStr) {
   return isNaN(d.getTime()) ? null : d;
 }
 
-/** 오늘 00:00:00 KST ISO 와 만료일(issued_at +1y -1d) ISO 계산 */
-function computeIssuedAtAndDueISO() {
-  // 오늘 KST 자정
-  const ymd = todayKSTDateOnly();
-  const issuedAt = new Date(`${ymd}T00:00:00+09:00`);
-  // +1년
-  const plusOneYear = new Date(issuedAt.getTime());
-  plusOneYear.setUTCFullYear(plusOneYear.getUTCFullYear() + 1);
-  // -1일
-  const due = new Date(plusOneYear.getTime() - 24 * 60 * 60 * 1000);
+/** UTC(Z) 문자열 포맷터: 'YYYY-MM-DDTHH:mm:ssZ' */
+function toUTCISO(dateObj) {
+  const y = dateObj.getUTCFullYear();
+  const m = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(dateObj.getUTCDate()).padStart(2, '0');
+  const hh = String(dateObj.getUTCHours()).padStart(2, '0');
+  const mm = String(dateObj.getUTCMinutes()).padStart(2, '0');
+  const ss = String(dateObj.getUTCSeconds()).padStart(2, '0');
+  return `${y}-${m}-${d}T${hh}:${mm}:${ss}Z`;
+}
+
+/**
+ * "KST 벽시각(Date)" → "DB가 timestamp로 받더라도 KST 자정이 그대로 저장되도록"
+ * 저장 시에는 KST 기준 시간을 +9시간 시프트한 뒤 Z(UTC)로 직렬화
+ * 예) 2025-08-14 00:00:00 KST (내부 2025-08-13T15:00:00Z) -> +9h -> '2025-08-14T00:00:00Z'
+ */
+function kstDateToUTCStorageISO(dateKST) {
+  const shifted = new Date(dateKST.getTime() + 9 * 60 * 60 * 1000); // +9h
+  return toUTCISO(shifted);
+}
+
+/** 오늘 KST 자정(issued_at)과 만료일(coupon_due=issued_at +1y -1d)을 DB 저장용(Z) ISO로 반환 */
+function computeIssuedAtAndDueForStorage() {
+  // 오늘 KST 자정 만들기
+  const ymd = todayKSTDateOnly(); // 'YYYY-MM-DD'
+  const issuedAtKST = new Date(`${ymd}T00:00:00+09:00`);
+
+  // +1년 -1일 (KST 기준)
+  const dueKST = new Date(issuedAtKST.getTime());
+  dueKST.setUTCFullYear(dueKST.getUTCFullYear() + 1);
+  const oneDayMs = 24 * 60 * 60 * 1000;
+  dueKST.setTime(dueKST.getTime() - oneDayMs);
 
   return {
-    issued_at: toKSTISO(issuedAt),
-    coupon_due: toKSTISO(due),
+    issued_at: kstDateToUTCStorageISO(issuedAtKST), // 예: 'YYYY-MM-DDT00:00:00Z'
+    coupon_due: kstDateToUTCStorageISO(dueKST),
   };
 }
 
@@ -99,7 +110,7 @@ function generateNewCouponCode() {
   return randomString(randomLength8to10(), alphabet);
 }
 
-/** base64url 해시에서 -,_ 제거 후 영숫자만 남겨 자르기 */
+/** base64url 해시 → 영숫자만 남겨 필요한 길이만큼 슬라이스 */
 function hashAlphaNum(seed, len) {
   let s = crypto.createHash('sha256').update(seed).digest('base64url').replace(/[-_]/g, '');
   while (s.length < len) s += s; // 길이 보강
@@ -110,7 +121,7 @@ function hashAlphaNum(seed, len) {
  * 결정적 새 coupon_instance_id 생성:
  * 포맷: CI-YYMMDD-HHMM-XXXXXXXX
  * - 날짜/시각: "지금 KST" (요구사항 유지)
- * - 마지막 8자: (원본ID + issued_at) 기반 해시 → 동일 쿠폰 재생성 시 항상 동일
+ * - 마지막 8자: (원본ID + issued_at) 기반 해시 → 동시 중복 재생성 완화
  */
 function generateNewInstanceIdKST(original, issued_at_iso) {
   const kst = nowKST();
@@ -167,7 +178,7 @@ async function putExpired(coupon) {
 
 async function postNewFromExpired(original) {
   const base = sanitizeForCreate(original);
-  const { issued_at, coupon_due } = computeIssuedAtAndDueISO();
+  const { issued_at, coupon_due } = computeIssuedAtAndDueForStorage();
 
   // coupon_code 규칙: 원본이 null -> null, 존재 -> 새 랜덤(8~10, l/I/O/0 제외)
   const newCouponCode = original.coupon_code == null ? null : generateNewCouponCode();
@@ -181,8 +192,8 @@ async function postNewFromExpired(original) {
     coupon_instance_id: newId,
     coupon_code: newCouponCode,
     status: 'available',
-    issued_at,
-    coupon_due,
+    issued_at,   // '...Z' (KST 자정을 +9h 시프트한 UTC 표현)
+    coupon_due,  // '...Z'
   };
 
   console.log('🆕 [Updater] POST(새 쿠폰) 시작:', newId);
@@ -197,7 +208,7 @@ async function postNewFromExpired(original) {
   } catch (err) {
     const code = err.response?.status;
     if (code === 409 || code === 412) {
-      // 409 Conflict (이미 동일 ID 존재) / 412 Precondition Failed 등 → 타 워커가 선점
+      // 409 Conflict / 412 Precondition Failed 등 → 타 워커가 선점
       console.warn('ℹ️ [Updater] 이미 동일 새 쿠폰이 생성된 것으로 판단(무시):', newId);
       return null;
     }
