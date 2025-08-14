@@ -76,9 +76,9 @@ async function withConcurrency(list, limit, worker) {
 }
 
 function startUpdaterJobs() {
-  // 0,10,20,30,40,50분마다 실행 (KST 기준)
+  // 5분마다 실행
   cron.schedule(
-    '0,10,20,30,40,50 * * * *',
+    '*/5 * * * *',
     async () => {
       const tick = new Date().toISOString();
       console.log(`🔄 [Updater] 쿠폰 만료 점검 시작 @ ${tick}`);
