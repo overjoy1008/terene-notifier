@@ -177,6 +177,10 @@ ${reserver_name}님, 체크인 정보를 전달드립니다.
 ■ TERENE UNMU 이용 안내서 링크
 <링크> : https://drive.google.com/file/d/1RP5g0gQMKbE5e8WP_nu2lADhyl3Gdy3q/view?usp=drive_link
 
+
+■ BBQ 숯 점화방법 동영상 링크
+https://tv.naver.com/v/70006417
+
 이용 간 불편 및 문의 사항은 카카오톡채널(ID : TERENE) 문의를 통해 부탁드립니다`
   },
 

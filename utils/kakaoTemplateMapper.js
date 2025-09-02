@@ -93,7 +93,7 @@ const kakaoTemplateMap = {
   },
 
   H: {
-    templateId: "KA01TP250719081039026KFEsvcvVWJH",
+    templateId: "KA01TP250821043839842Y4cGfDY3ZMO",
     variables: [
       "stay_location",
       "reserver_name",

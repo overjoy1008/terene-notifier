@@ -10,8 +10,21 @@ function startScheduledJobs() {
         process.env.SENDER_PHONE === '01023705710'
       ) return;
 
-      const { data: orders } = await axios.get('https://terene-db-server.onrender.com/api/v2/orders');
-      const acceptedOrders = orders.filter(order => order.reservation_status === 'confirmed');
+      const [{ data: orders }, { data: cancellations }] = await Promise.all([
+        axios.get('https://terene-db-server.onrender.com/api/v2/orders'),
+        axios.get('https://terene-db-server.onrender.com/api/v2/cancellations'),
+      ]);
+
+      const cancelledIds = new Set(
+        (Array.isArray(cancellations) ? cancellations : []).map(c => c.order_id)
+      );
+
+      // "confirmed" 이면서, cancellations에 자신(order_id)이 없는 건만 진행
+      const acceptedOrders = (Array.isArray(orders) ? orders : []).filter(
+        order =>
+          order?.reservation_status === 'confirmed' &&
+          !cancelledIds.has(order?.order_id)
+      );
 
       const now = new Date();   
       const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
@@ -50,7 +63,6 @@ function startScheduledJobs() {
         const shouldSendI = isAround(kstHours, kstMinutes, 10, 0) && isSameDate(today, checkoutDate);
         const shouldUpdateStatus = isAround(kstHours, kstMinutes, 10, 30);
 
-        // ✅ 추가: stay_status 자동 업데이트
         if (shouldUpdateStatus) {
           const stayHistory = order.stay_history || [];
 
@@ -92,6 +104,15 @@ function startScheduledJobs() {
           arrival_link: 'http://pf.kakao.com/_xexjbTn/chat'
         };
 
+        // 추가 서비스별 단가 매핑 테이블 (임시)
+        const SERVICE_INFO = {
+          "BBQ 용품 준비":        { unitPrice: 25000, unitLabel: "회" },
+          "BBQ 식재료 준비":      { unitPrice: 20000, unitLabel: "인" },
+          "모닝 스트레칭 클래스": { unitPrice: 0,     unitLabel: "인" },
+          "케이터링 서비스":    { unitPrice: 0, unitLabel: "인" },
+        };
+
+
         const orderParamsG_admin = {
           stay_location: order.stay_location,
           reserver_name: order.stay_info.name,
@@ -104,8 +125,15 @@ function startScheduledJobs() {
           youth: order.stay_people.teenager || 0,
           child: order.stay_people.child || 0,
           special_requests: order.stay_details.special_requests || "-",
-          services: (order.service_price.services || []).map(s => s.type).join(', ') || "-",
-          admin_notes: order.stay_details.admin_notes || "-",
+          services:
+            (order.service_price.services || [])
+              .map(s => {
+                const info = SERVICE_INFO[s.type] || { unitPrice: 0, unitLabel: "회" };
+                const { unitPrice, unitLabel } = info;
+                const count = unitPrice > 0 ? Math.round(s.amount / unitPrice) : 1;
+                return `${s.type} (${count}${unitLabel})`;
+              })
+              .join(', ') || "-",
         };
 
         const orderParamsH = {
