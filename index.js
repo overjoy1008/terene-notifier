@@ -14,6 +14,9 @@ const kakaoRouterV2 = require('./routes/kakao.v2');
 const startScheduledJobs = require('./cron/scheduler');
 const startUpdaterJobs = require('./cron/updater');
 
+const { router: queueRouter } = require("./queue/reservationQueue")
+const { start: startQueueWorker } = require("./queue/reservationWorker")
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -46,6 +49,9 @@ app.use("/api/auth", authRouter);
 
 startScheduledJobs();  // 기존 스케줄러
 startUpdaterJobs();    // 신규 업데이터 스케줄러
+
+app.use("/api/queue", queueRouter)
+startQueueWorker()
 
 app.listen(PORT, () => {
   console.log(`✅ 서버 실행 중: http://localhost:${PORT}`);
