@@ -15,6 +15,7 @@ function rid(n = 6) {
   for (let i = 0; i < n; i++) s += c[Math.floor(Math.random() * c.length)]
   return s
 }
+const pad = (n) => String(n).padStart(2, "0")
 
 async function processJob(payload) {
   const {
@@ -37,8 +38,8 @@ async function processJob(payload) {
 
   const now = kst()
   const nowISO = kstISO(now)
-  const dateStr = now.toISOString().slice(2, 10).replace(/-/g, "")
-  const timeStr = String(now.getHours()).padStart(2, "0") + String(now.getMinutes()).padStart(2, "0")
+  const dateStr = `${String(now.getFullYear()).slice(2)}${pad(now.getMonth() + 1)}${pad(now.getDate())}`
+  const timeStr = `${pad(now.getHours())}${pad(now.getMinutes())}`
   const paymentId = `P-${dateStr}-${timeStr}-${rid(6)}`
 
   const paymentPayload = {
@@ -202,7 +203,6 @@ async function processJob(payload) {
 }
 
 async function loop() {
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     const item = await take()
     try {
