@@ -5,14 +5,9 @@ function kst(d = new Date()) {
   return new Date(t)
 }
 function kstISO(d = new Date()) {
-  const utc = new Date(d.getTime()) // UTC 기준
-  utc.setHours(utc.getUTCHours() - 9) // 9시간 빼기
+  const x = kst(d)
   const z = (n) => String(n).padStart(2, "0")
-  return `${utc.getUTCFullYear()}-${z(utc.getUTCMonth() + 1)}-${z(
-    utc.getUTCDate()
-  )}T${z(utc.getUTCHours())}:${z(utc.getUTCMinutes())}:${z(
-    utc.getUTCSeconds()
-  )}+09:00`
+  return `${x.getFullYear()}-${z(x.getMonth() + 1)}-${z(x.getDate())}T${z(x.getHours())}:${z(x.getMinutes())}:${z(x.getSeconds())}+09:00`
 }
 
 function rid(n = 6) {
@@ -42,28 +37,10 @@ async function processJob(payload) {
     throw new Error("already processed")
 
   const now = kst()
+  const nowISO = kstISO(new Date())
   const dateStr = now.toISOString().slice(2, 10).replace(/-/g, "")
   const timeStr = String(now.getHours()).padStart(2, "0") + String(now.getMinutes()).padStart(2, "0")
   const paymentId = `P-${dateStr}-${timeStr}-${rid(6)}`
-  
-  function utcPlus9ISO(d = new Date()) {
-    const z = (n) => String(n).padStart(2, "0")
-    return (
-        d.getUTCFullYear() +
-        "-" +
-        z(d.getUTCMonth() + 1) +
-        "-" +
-        z(d.getUTCDate()) +
-        "T" +
-        z(d.getUTCHours()) +
-        ":" +
-        z(d.getUTCMinutes()) +
-        ":" +
-        z(d.getUTCSeconds()) +
-        "+09:00"
-    )
-  }
-
 
   const paymentPayload = {
     payment_id: paymentId,
@@ -83,9 +60,9 @@ async function processJob(payload) {
     price_paid: Number(amount),
     payment_status: "completed",
     payment_history: [
-      { status: "pending", timestamp: utcPlus9ISO(now) },
-      { status: "processing", timestamp: utcPlus9ISO(now) },
-      { status: "completed", timestamp: utcPlus9ISO(now) },
+      { status: "pending", timestamp: nowISO },
+      { status: "processing", timestamp: nowISO },
+      { status: "completed", timestamp: nowISO },
     ],
   }
 
@@ -99,7 +76,7 @@ async function processJob(payload) {
     ...orderData,
     reservation_status: "confirmed",
     reservation_history: orderData.reservation_history.map((e) =>
-      e.status === "confirmed" ? { status: "confirmed", timestamp: utcPlus9ISO(now) } : e
+      e.status === "confirmed" ? { status: "confirmed", timestamp: nowISO } : e
     ),
   }
   const updateOrder = await fetch(
