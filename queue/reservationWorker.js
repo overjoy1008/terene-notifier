@@ -160,7 +160,6 @@ async function processJob(payload) {
       )
 
     if (miEntries.length > 0) {
-      const nowK = kst()
       const z = (n) => String(n).padStart(2, "0")
       const yy = String(nowK.getFullYear()).slice(2)
       const mm = z(nowK.getMonth() + 1)
@@ -180,10 +179,10 @@ async function processJob(payload) {
         const payload = {
           mileage_id: mileageId,
           membership_number: fullUpdatedOrder.membership_number,
-          issued_at: kstISO(nowK),
+          issued_at: kstISO(),
           mileage_amount: -Math.abs(Number(e.amount || 0)),
           mileage_type: "use",
-          description: `예약 사용: ${orderId}`,
+          description: `예약 할인: ${e.amount.toLocaleString()}p`,
           mileage_due: null,
           order_id: orderId,
         }

@@ -12,7 +12,7 @@ function enqueue(job) {
   return id
 }
 
-router.post("/reservation", async (req, res) => {
+router.post("/A", async (req, res) => {
   try {
     const {
       orderId,
