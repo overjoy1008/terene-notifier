@@ -228,7 +228,33 @@ async function processJobN(job) {
   if (!orderRes.ok) throw new Error(await orderRes.text())
   const created = await orderRes.json()
 
+  // try {
+  //   for (const p of job.notify?.adminPhones || []) {
+  //     await fetch("https://terene-notifier-server.onrender.com/api/kakao/v2", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({
+  //         receiver_phone: String(p).replace(/-/g, ""),
+  //         template_type: "N",
+  //         params: job.templateParams,
+  //       }),
+  //     })
+  //   }
+  // } catch {}
+
   try {
+    await fetch("https://terene-notifier-server.onrender.com/api/kakao/v2", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        receiver_phone: String(created.reserver_contact).replace(/-/g, ""),
+        template_type: "N",
+        params: job.templateParams,
+      }),
+    })
+  } catch {}
+
+    try {
     const allDaysRes = await fetch(`https://terene-db-server.onrender.com/api/days`)
     if (!allDaysRes.ok) throw new Error(`days fetch failed`)
     const allDays = await allDaysRes.json()
@@ -259,31 +285,6 @@ async function processJobN(job) {
     }
   } catch {}
 
-  // try {
-  //   for (const p of job.notify?.adminPhones || []) {
-  //     await fetch("https://terene-notifier-server.onrender.com/api/kakao/v2", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({
-  //         receiver_phone: String(p).replace(/-/g, ""),
-  //         template_type: "N",
-  //         params: job.templateParams,
-  //       }),
-  //     })
-  //   }
-  // } catch {}
-
-  try {
-    await fetch("https://terene-notifier-server.onrender.com/api/kakao/v2", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        receiver_phone: String(created.reserver_contact).replace(/-/g, ""),
-        template_type: "N",
-        params: job.templateParams,
-      }),
-    })
-  } catch {}
 }
 
 async function processJobO(job) {
