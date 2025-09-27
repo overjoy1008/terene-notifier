@@ -152,6 +152,49 @@ async function processJob(payload) {
         }
       }
     }
+
+    // 마일리지 처리 구간
+    const miEntries =
+      (fullUpdatedOrder.discounted_price?.secondary_coupons || []).filter(
+        (e) => typeof e.coupon_id === "string" && e.coupon_id.startsWith("MI")
+      )
+
+    if (miEntries.length > 0) {
+      const nowK = kst()
+      const z = (n) => String(n).padStart(2, "0")
+      const yy = String(nowK.getFullYear()).slice(2)
+      const mm = z(nowK.getMonth() + 1)
+      const dd = z(nowK.getDate())
+      const HH = z(nowK.getHours())
+      const MM = z(nowK.getMinutes())
+
+      const rid8 = (n = 8) => {
+        const c = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz123456789"
+        let s = ""
+        for (let i = 0; i < n; i++) s += c[Math.floor(Math.random() * c.length)]
+        return s
+      }
+
+      for (const e of miEntries) {
+        const mileageId = `MI-${yy}${mm}${dd}-${HH}${MM}-${rid8(8)}`
+        const payload = {
+          mileage_id: mileageId,
+          membership_number: fullUpdatedOrder.membership_number,
+          issued_at: kstISO(nowK),
+          mileage_amount: -Math.abs(Number(e.amount || 0)),
+          mileage_type: "use",
+          description: `예약 사용: ${orderId}`,
+          mileage_due: null,
+          order_id: orderId,
+        }
+
+        await fetch("https://terene-db-server.onrender.com/api/v2/mileages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+      }
+    }
   } catch {}
 
   try {

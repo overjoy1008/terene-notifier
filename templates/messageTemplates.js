@@ -20,7 +20,11 @@ ${reserver_name}님의 예약이 확정되었습니다.
 7. 숙박 인원 : 성인 ${adult}명, 청소년/아동 ${youth}명, 영유아 ${child}명
 
 상세 예약 내용은 홈페이지 > 예약하기 > 예약 조회하기 에서 확인하실 수 있습니다.
-체크인 당일 오전 안내 문자가 발송될 예정입니다.
+
+체크인 당일 오전 8시 체크인 시간 및 오시는길 안내 문자가 발송되고, 오후 12시 출입 비밀번호를 포함한 체크인 정보와 이용안내를 전달드릴 예정입니다
+
+추가 문의는 TERENE 카카오톡채널을 이용해주시길 부탁드립니다. 
+(유선 문의 / 상담불가)
 감사합니다.`
   },
 
@@ -255,7 +259,47 @@ ${reserver_name}님,
 
     body: ({ reserver_name, arrival_timeline }) => `${reserver_name}님의 예상도착시간:
     ${arrival_timeline} 입니다.`
-  }
+  },
+
+  N: {
+    title: ({ stay_location, reserver_name }) =>
+      `[TERENE ${stay_location}] ${reserver_name}님 예약 생성 안내`,
+
+    body: ({ stay_location, reserver_name, order_id, membership_number,
+      reserver_contact, checkin_date, checkout_date }) => `[TERENE ${stay_location}]
+${reserver_name}님의 예약이 생성되었습니다.
+
+예약정보
+
+1. 예약번호 : ${order_id}
+2. 회원번호 : ${membership_number}
+3. 이름 : ${reserver_name}
+4. 연락처 : ${reserver_contact}
+5. 지점 : TERENE ${stay_location}
+6. 숙박 일정 : ${checkin_date}~${checkout_date}
+
+홈페이지에서 예약 조회 후  "예약대기" 인 해당 예약 건에 대하여 "예약하기" 버튼을 클릭하신 후 숙박정보 입력 및 결제를 바로 진행하실 수 있습니다. 
+
+2일 이내에 예약이 확정되지 않을 경우 예약대기가 취소될 수 있음을 알려드립니다.`
+  },
+
+  O: {
+    title: ({ stay_location, reserver_name }) =>
+      `[TERENE ${stay_location}] ${reserver_name}님 예약 변경 안내`,
+    
+    body: ({ name }) => `알림톡 도착
+
+안녕하세요, ${name}님
+
+TERENE 회원권 구매 상담 신청을 해주셔서 진심으로 감사드립니다.
+
+${name}님께서 신청해주신 회원권 구매 상담은 대면 미팅으로 진행하고 있습니다. 
+상담 일정 및 장소를 확정하기 위해 담당자가 빠른 시일내에 전화연락을 드릴 수 있도록 하겠습니다.
+ 
+업무상 전화 통화가 어려우시거나 빠른 일정 확정이 필요하신 분은 아래 채팅창을 통해 말씀해주세요. 바로 채팅 상담으로 진행 도와드리겠습니다.
+
+감사합니다!`
+  },
 };
 
 module.exports = messageTemplates;

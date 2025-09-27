@@ -1,6 +1,6 @@
 const kakaoTemplateMap = {
   A: {
-    templateId: "KA01TP250717092836441cjGZrRGM66z",
+    templateId: "KA01TP25092505423323963VoFHxD4WY",
     variables: [
       "stay_location",
       "reserver_name",
@@ -142,7 +142,27 @@ const kakaoTemplateMap = {
       "reserver_name",
       "order_id"
     ]
-  }
+  },
+
+  N: {
+    templateId: "KA01TP250903104036274mycpB4IT2H6",
+    variables: [
+      "stay_location",
+      "reserver_name",
+      "order_id",
+      "membership_number",
+      "reserver_contact",
+      "checkin_date",
+      "checkout_date"
+    ]
+  },
+
+  O: {
+    templateId: "KA01TP250903104527931m1TmsxsRlZ8",
+    variables: [
+      "name"
+    ]
+  },
 };
 
 
