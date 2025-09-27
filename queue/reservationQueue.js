@@ -1,3 +1,4 @@
+// queue/reservationQueue.js
 const express = require("express")
 const { EventEmitter } = require("events")
 
@@ -14,23 +15,32 @@ function enqueue(job) {
 
 router.post("/A", async (req, res) => {
   try {
-    const {
-      orderId,
-      amount,
-      paymentKey,
-      isFree,
-      templateParams,
-      templateParamsB,
-      notify,
-    } = req.body
+    const { orderId, amount, paymentKey, isFree, templateParams, templateParamsB, notify } = req.body
     if (!orderId) return res.status(400).json({ error: "orderId required" })
     const id = enqueue({
+      kind: "A",
       orderId,
       amount,
       paymentKey: isFree ? null : paymentKey,
       isFree: !!isFree,
       templateParams: templateParams || {},
       templateParamsB: templateParamsB || {},
+      notify: notify || { adminPhones: [], adminEmails: [] },
+    })
+    res.json({ ok: true, jobId: id })
+  } catch (e) {
+    res.status(500).json({ error: String(e?.message || e) })
+  }
+})
+
+router.post("/N", async (req, res) => {
+  try {
+    const { orderPayload, templateParams, notify } = req.body
+    if (!orderPayload?.order_id) return res.status(400).json({ error: "orderPayload.order_id required" })
+    const id = enqueue({
+      kind: "N",
+      orderPayload,
+      templateParams: templateParams || {},
       notify: notify || { adminPhones: [], adminEmails: [] },
     })
     res.json({ ok: true, jobId: id })
