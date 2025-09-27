@@ -49,6 +49,22 @@ router.post("/N", async (req, res) => {
   }
 })
 
+router.post("/O", async (req, res) => {
+  try {
+    const { contact, templateParams } = req.body
+    if (!contact) return res.status(400).json({ error: "contact required" })
+    if (!templateParams?.name) return res.status(400).json({ error: "templateParams.name required" })
+    const id = enqueue({
+      kind: "O",
+      contact,
+      templateParams: { name: String(templateParams.name) },
+    })
+    res.json({ ok: true, jobId: id })
+  } catch (e) {
+    res.status(500).json({ error: String(e?.message || e) })
+  }
+})
+
 async function take() {
   while (q.length === 0) {
     await new Promise((r) => bus.once("added", r))

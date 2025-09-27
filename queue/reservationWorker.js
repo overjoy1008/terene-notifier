@@ -274,19 +274,19 @@ async function processJobN(job) {
     }
   } catch {}
 
-  try {
-    for (const p of job.notify?.adminPhones || []) {
-      await fetch("https://terene-notifier-server.onrender.com/api/kakao/v2", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          receiver_phone: String(p).replace(/-/g, ""),
-          template_type: "N",
-          params: job.templateParams,
-        }),
-      })
-    }
-  } catch {}
+  // try {
+  //   for (const p of job.notify?.adminPhones || []) {
+  //     await fetch("https://terene-notifier-server.onrender.com/api/kakao/v2", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({
+  //         receiver_phone: String(p).replace(/-/g, ""),
+  //         template_type: "N",
+  //         params: job.templateParams,
+  //       }),
+  //     })
+  //   }
+  // } catch {}
 
   try {
     await fetch("https://terene-notifier-server.onrender.com/api/kakao/v2", {
@@ -301,11 +301,27 @@ async function processJobN(job) {
   } catch {}
 }
 
+async function processJobO(job) {
+  const phone = String(job.contact).replace(/-/g, "")
+  await fetch("https://terene-notifier-server.onrender.com/api/kakao/v2", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      receiver_phone: phone,
+      template_type: "O",
+      params: { name: job.templateParams.name },
+    }),
+  })
+}
+
+
 async function loop() {
   while (true) {
     const item = await take()
     try {
-      if (item?.job?.kind === "N") {
+      if (item?.job?.kind === "O") {
+        await processJobO(item.job)
+      } else if (item?.job?.kind === "N") {
         await processJobN(item.job)
       } else if (item?.job?.kind === "A") {
         await processJobA(item.job)
