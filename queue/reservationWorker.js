@@ -226,7 +226,10 @@ async function processJobN(job) {
     body: JSON.stringify(job.orderPayload),
   })
   if (!orderRes.ok) throw new Error(await orderRes.text())
-  const created = await orderRes.json()
+
+  // const created = await orderRes.json()
+
+  const orderData = job.orderPayload
 
   // try {
   //   for (const p of job.notify?.adminPhones || []) {
@@ -247,7 +250,7 @@ async function processJobN(job) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        receiver_phone: String(created.reserver_contact).replace(/-/g, ""),
+        receiver_phone: String(orderData.reserver_contact).replace(/-/g, ""),
         template_type: "N",
         params: job.templateParams,
       }),
@@ -259,8 +262,8 @@ async function processJobN(job) {
     if (!allDaysRes.ok) throw new Error(`days fetch failed`)
     const allDays = await allDaysRes.json()
     const dateRange = []
-    let cur = new Date(created.checkin_date)
-    const end = new Date(created.checkout_date)
+    let cur = new Date(orderData.checkin_date)
+    const end = new Date(orderData.checkout_date)
     while (cur <= end) {
       dateRange.push(cur.toISOString().split("T")[0])
       cur.setDate(cur.getDate() + 1)
@@ -268,13 +271,13 @@ async function processJobN(job) {
     const targetDays = allDays.filter((d) => dateRange.includes(d.date))
     for (const day of targetDays) {
       const x = { ...day }
-      if (day.date === created.checkin_date) {
-        x.checkin = { is_occupied: true, occupied_order_id: created.order_id }
-      } else if (day.date === created.checkout_date) {
-        x.checkout = { is_occupied: true, occupied_order_id: created.order_id }
+      if (day.date === orderData.checkin_date) {
+        x.checkin = { is_occupied: true, occupied_order_id: orderData.order_id }
+      } else if (day.date === orderData.checkout_date) {
+        x.checkout = { is_occupied: true, occupied_order_id: orderData.order_id }
       } else {
-        x.checkin = { is_occupied: true, occupied_order_id: created.order_id }
-        x.checkout = { is_occupied: true, occupied_order_id: created.order_id }
+        x.checkin = { is_occupied: true, occupied_order_id: orderData.order_id }
+        x.checkout = { is_occupied: true, occupied_order_id: orderData.order_id }
       }
       const r = await fetch(`https://terene-db-server.onrender.com/api/days/${day.date}`, {
         method: "PUT",
