@@ -1,13 +1,10 @@
 // queue/reservationQueue.js
 const express = require("express")
 const { EventEmitter } = require("events")
-const cors = require("cors")
 
 const router = express.Router()
 const bus = new EventEmitter()
 const q = []
-
-router.options("*", cors())
 
 function enqueue(job) {
   const id = `job_${Date.now()}_${Math.random().toString(36).slice(2)}`
