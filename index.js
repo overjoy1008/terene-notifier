@@ -23,6 +23,7 @@ const PORT = process.env.PORT || 3000;
 const allowedOrigins = [
   "https://necessary-tenure-684644.framer.app",
   "https://terene.kr",
+  "https://www.terene.kr",
 ];
 
 app.use(cors({
@@ -34,7 +35,11 @@ app.use(cors({
     }
   },
   credentials: true,
+  methods: ["GET","POST","PUT","DELETE","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization"],
 }));
+
+app.options("*", cors())
 
 app.use(express.json());
 app.use(cookieParser())
