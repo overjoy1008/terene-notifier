@@ -134,6 +134,7 @@ function startScheduledJobs() {
                 return `${s.type} (${count}${unitLabel})`;
               })
               .join(', ') || "-",
+          admin_notes: order.admin_notes || "-",
         };
 
         const orderParamsH = {
