@@ -33,47 +33,36 @@ router.post("/A", async (req, res) => {
   }
 })
 
-router.post("/C", async (req, res) => {
+router.post("/CD", async (req, res) => {
   try {
     const { orderId, actor, cancelMode } = req.body
     if (!orderId) return res.status(400).json({ error: "orderId required" })
     if (!["admin","customer"].includes(actor)) return res.status(400).json({ error: "actor invalid" })
     if (!["decline","cancel"].includes(cancelMode)) return res.status(400).json({ error: "cancelMode invalid" })
-    const id = enqueue({ kind: "C", orderId, actor, cancelMode })
+    const id = enqueue({ kind: "CD", orderId, actor, cancelMode })
     res.json({ ok: true, jobId: id })
   } catch (e) {
     res.status(500).json({ error: String(e?.message || e) })
   }
 })
 
-router.post("/E", async (req, res) => {
+router.post("/EF", async (req, res) => {
   try {
     const { orderId } = req.body
     if (!orderId) return res.status(400).json({ error: "orderId required" })
-    const id = enqueue({ kind: "E", orderId })
+    const id = enqueue({ kind: "EF", orderId })
     res.json({ ok: true, jobId: id })
   } catch (e) {
     res.status(500).json({ error: String(e?.message || e) })
   }
 })
 
-router.post("/F", async (req, res) => {
-  try {
-    const { orderId } = req.body
-    if (!orderId) return res.status(400).json({ error: "orderId required" })
-    const id = enqueue({ kind: "E", orderId, forceTemplate: "F" })
-    res.json({ ok: true, jobId: id })
-  } catch (e) {
-    res.status(500).json({ error: String(e?.message || e) })
-  }
-})
-
-router.post("/J", async (req, res) => {
+router.post("/JK", async (req, res) => {
   try {
     const { orderId, type, settlementInfo, settlement_url } = req.body
     if (!orderId) return res.status(400).json({ error: "orderId required" })
     if (!["refund","additional"].includes(type)) return res.status(400).json({ error: "type invalid" })
-    const id = enqueue({ kind: "J", orderId, type, settlementInfo, settlement_url: settlement_url || null })
+    const id = enqueue({ kind: "JK", orderId, type, settlementInfo, settlement_url: settlement_url || null })
     res.json({ ok: true, jobId: id })
   } catch (e) {
     res.status(500).json({ error: String(e?.message || e) })

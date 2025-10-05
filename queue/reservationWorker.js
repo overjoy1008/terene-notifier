@@ -290,14 +290,14 @@ async function processJobA(payload) {
   } catch {}
 }
 
-async function processJobC(job) {
+async function processJobCD(job) {
   const { orderId, actor, cancelMode } = job
   const orderRes = await fetch(`https://terene-db-server.onrender.com/api/v2/orders/${orderId}`)
   if (!orderRes.ok) throw new Error("order fetch failed")
   const orderData = await orderRes.json()
 
   const now = kst()
-  const nowISO = kstISO(now)
+  const nowISO = kstISO(new Date())
   const dateStr = now.toISOString().slice(2,10).replace(/-/g,"")
   const timeStr = `${String(now.getHours()).padStart(2,"0")}${String(now.getMinutes()).padStart(2,"0")}`
   const cancellationId = `C-${dateStr}-${timeStr}-${rid(6)}`
@@ -377,10 +377,10 @@ async function processJobC(job) {
   }
 }
 
-async function processJobE(job) {
+async function processJobEF(job) {
   const { orderId, forceTemplate } = job
   const now = kst()
-  const nowISO = kstISO(now)
+  const nowISO = kstISO(new Date())
 
   const orderData = await fetchJSON(`https://terene-db-server.onrender.com/api/v2/orders/${orderId}`)
   const cancellations = await fetchJSON(`https://terene-db-server.onrender.com/api/v2/cancellations`)
@@ -462,7 +462,7 @@ async function processJobE(job) {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(refundPayload),
   })
 
-  const templateCode = forceTemplate ? forceTemplate : (isCustomer ? "E" : "F")
+  const templateCode = isCustomer ? "E" : "F"
   const paramsB = {
     stay_location: `${orderData.stay_location}`,
     reserver_name: orderData.stay_info?.name || orderData.reserver_name,
@@ -492,10 +492,10 @@ async function processJobE(job) {
   }
 }
 
-async function processJobJ(job) {
+async function processJobJK(job) {
   const { orderId, type, settlementInfo, settlement_url } = job
   const now = kst()
-  const nowISO = kstISO(now)
+  const nowISO = kstISO(new Date())
 
   const dateStr = now.toISOString().slice(2, 10).replace(/-/g, "")
   const timeStr = `${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}`
@@ -570,7 +570,7 @@ async function processJobJ(job) {
 async function processJobL(job) {
   const { orderId, type, settlementInfo } = job
   const now = kst()
-  const nowISO = kstISO(now)
+  const nowISO = kstISO(new Date())
 
   const orderRes = await fetch(`https://terene-db-server.onrender.com/api/v2/orders/${orderId}`)
   if (!orderRes.ok) throw new Error("order fetch failed")
@@ -710,9 +710,9 @@ async function loop() {
     try {
       const k = item?.job?.kind
       if (k === "A") await processJobA(item.job)
-      else if (k === "C") await processJobC(item.job)
-      else if (k === "E") await processJobE(item.job)
-      else if (k === "J") await processJobJ(item.job)
+      else if (k === "CD") await processJobCD(item.job)
+      else if (k === "EF") await processJobEF(item.job)
+      else if (k === "JK") await processJobJK(item.job)
       else if (k === "L") await processJobL(item.job)
       else if (k === "N") await processJobN(item.job)
       else if (k === "O") await processJobO(item.job)
