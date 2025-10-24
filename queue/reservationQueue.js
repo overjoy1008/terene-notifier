@@ -25,7 +25,6 @@ router.post("/A", async (req, res) => {
       isFree: !!isFree,
       templateParams: templateParams || {},
       templateParamsB: templateParamsB || {},
-      notify: notify || { adminPhones: [], adminEmails: [] },
     })
     res.json({ ok: true, jobId: id })
   } catch (e) {
@@ -89,7 +88,6 @@ router.post("/N", async (req, res) => {
       kind: "N",
       orderPayload,
       templateParams: templateParams || {},
-      notify: notify || { adminPhones: [], adminEmails: [] },
     })
     res.json({ ok: true, jobId: id })
   } catch (e) {
