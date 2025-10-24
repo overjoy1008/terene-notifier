@@ -2,6 +2,27 @@ const cron = require('node-cron');
 const axios = require('axios');
 require('dotenv').config();
 
+async function fetchAdminContacts() {
+  const res = await axios.get("https://terene-db-server.onrender.com/api/v3/admin-contacts")
+  if (!res.status || res.status !== 200) throw new Error("failed to fetch admin contacts")
+  const all = Array.isArray(res.data) ? res.data : []
+
+  const valid = all.filter(
+    (a) => a.checkinout_alert === true && a.quiet_mode === false
+  )
+
+  const adminPhones = valid
+    .filter((a) => a.phone && a.phone.trim() !== "")
+    .map((a) => a.phone)
+
+  const adminEmails = valid
+    .filter((a) => a.email && a.email.trim() !== "")
+    .map((a) => a.email)
+
+  return { adminPhones, adminEmails }
+}
+
+
 function startScheduledJobs() {
   cron.schedule('0,30 * * * *', async () => {
     try {
@@ -52,6 +73,7 @@ function startScheduledJobs() {
         return `${yyyy}-${mm}-${dd}T${hh}:${min}:${ss}+09:00`;
       }
 
+      const { adminPhones, adminEmails } = await fetchAdminContacts();
 
       for (const order of acceptedOrders) {
         const checkinDate = new Date(order.checkin_date);
@@ -149,19 +171,33 @@ function startScheduledJobs() {
 
         if (shouldSendG) {
 
-          await axios.post(`https://terene-notifier-server.onrender.com/api/kakao/v2`, {
-            receiver_phone: order.stay_info.contact.replace(/-/g, ''),
-            template_type: 'G_customer',
-            params: orderParamsG_customer,
-          });
-
-          for (const adminPhone of ['01028891548', '01074994590']) {
+          try {
             await axios.post(`https://terene-notifier-server.onrender.com/api/kakao/v2`, {
-              receiver_phone: adminPhone,
-              template_type: 'G_admin',
-              params: orderParamsG_admin,
+              receiver_phone: order.stay_info.contact.replace(/-/g, ''),
+              template_type: 'G_customer',
+              params: orderParamsG_customer,
             });
-          }
+          } catch {}
+
+          try {
+            for (const adminPhone of adminPhones || []) {
+              await axios.post(`https://terene-notifier-server.onrender.com/api/kakao/v2`, {
+                receiver_phone: adminPhone.replace(/-/g, ''),
+                template_type: 'G_admin',
+                params: orderParamsG_admin,
+              });
+            }
+          } catch {}
+          try {
+            for (const adminEmail of adminEmails || []) {
+              await axios.post(`https://terene-notifier-server.onrender.com/api/email/v2`, {
+                receiver_email: adminEmail,
+                template_type: 'G_admin',
+                platform: 'gmail',
+                params: orderParamsG_admin,
+              });
+            }
+          } catch {}
         }
 
         if (shouldSendH) {
