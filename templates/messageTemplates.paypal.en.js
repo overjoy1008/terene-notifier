@@ -6,7 +6,8 @@ const messageTemplates = {
     body: ({
       stay_location, reserver_name, order_id, membership_number,
       reserver_contact, checkin_date, checkout_date, adult, youth, child
-    }) => `Dear ${reserver_name}, Your reservation has been confirmed.
+    }) => `[TERENE ${stay_location} | Reservation Confirmation - Additional Details Required]
+Dear ${reserver_name}, Your reservation has been confirmed.
 
 Reservation Details
 
@@ -16,7 +17,7 @@ Reservation Details
 4. Contact : ${reserver_contact}
 5. Location : TERENE ${stay_location}
 6. Stay Period : ${checkin_date}~${checkout_date}
-7. Guests : ${adult}, ${youth}, ${child}
+7. Guests : ${adult} Adults, ${youth} Youth, ${child} Child
 
 You can check your detailed reservation information on our website under Reservation > Check Reservation.
 
@@ -24,6 +25,8 @@ On the day of your check-in, we will send you a text message at 8:00 AM with che
 
 For additional inquiries, please contact us via the TERENE KakaoTalk channel or email (contact@terene.kr). (Phone inquiries are not available.)
 Thank you.
+
+To proceed with your reservation, we kindly ask you to provide the following information. Please refer to the attached PDF file in this email.
 
 -Copy of your ID 
 -Flight information (additional request email) 
