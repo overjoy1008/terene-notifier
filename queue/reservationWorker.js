@@ -21,8 +21,36 @@ async function fetchJSON(url, init) {
   return r.json()
 }
 
+// async function updateDaysOccupancy(orderData, occupied) {
+//   const allDays = await fetchJSON(`https://terene-db-server.onrender.com/api/days`)
+//   const dateRange = []
+//   let cur = new Date(orderData.checkin_date)
+//   const end = new Date(orderData.checkout_date)
+//   while (cur <= end) {
+//     dateRange.push(cur.toISOString().split("T")[0])
+//     cur.setDate(cur.getDate() + 1)
+//   }
+//   const targets = allDays.filter((d) => dateRange.includes(d.date))
+//   for (const day of targets) {
+//     const x = { ...day }
+//     const payload = occupied
+//       ? { is_occupied: true,  occupied_order_id: orderData.order_id }
+//       : { is_occupied: false, occupied_order_id: null }
+//     if (day.date === orderData.checkin_date) x.checkin = payload
+//     else if (day.date === orderData.checkout_date) x.checkout = payload
+//     else { x.checkin = payload; x.checkout = payload }
+//     const r = await fetch(`https://terene-db-server.onrender.com/api/days/${day.date}`, {
+//       method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(x),
+//     })
+//     if (!r.ok) throw new Error(`occupancy ${occupied?"set":"clear"} failed: ${day.date}`)
+//   }
+// }
+
 async function updateDaysOccupancy(orderData, occupied) {
-  const allDays = await fetchJSON(`https://terene-db-server.onrender.com/api/days`)
+  // ✅ 새 엔드포인트: /api/v3/days
+  const allDays = await fetchJSON(`https://terene-db-server.onrender.com/api/v3/days`)
+
+  // ✅ checkin~checkout 구간 날짜 리스트 생성
   const dateRange = []
   let cur = new Date(orderData.checkin_date)
   const end = new Date(orderData.checkout_date)
@@ -30,21 +58,53 @@ async function updateDaysOccupancy(orderData, occupied) {
     dateRange.push(cur.toISOString().split("T")[0])
     cur.setDate(cur.getDate() + 1)
   }
+
+  // ✅ 해당 날짜들만 추출
   const targets = allDays.filter((d) => dateRange.includes(d.date))
+
+  // ✅ location 기반 date_id 생성 규칙
+  const location = orderData.stay_location || "UNMU"
+
   for (const day of targets) {
-    const x = { ...day }
-    const payload = occupied
-      ? { is_occupied: true,  occupied_order_id: orderData.order_id }
-      : { is_occupied: false, occupied_order_id: null }
-    if (day.date === orderData.checkin_date) x.checkin = payload
-    else if (day.date === orderData.checkout_date) x.checkout = payload
-    else { x.checkin = payload; x.checkout = payload }
-    const r = await fetch(`https://terene-db-server.onrender.com/api/days/${day.date}`, {
-      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(x),
+    const payload = { ...day }
+
+    // ✅ occupancy 상태 설정
+    const isOcc = occupied ? true : false
+    const occId = occupied ? orderData.order_id : null
+
+    // ✅ 날짜별 로직 분기
+    if (day.date === orderData.checkin_date) {
+      payload.checkin_occupied = isOcc
+      payload.checkin_order_id = occId
+    } else if (day.date === orderData.checkout_date) {
+      payload.checkout_occupied = isOcc
+      payload.checkout_order_id = occId
+    } else {
+      payload.checkin_occupied = isOcc
+      payload.checkin_order_id = occId
+      payload.checkout_occupied = isOcc
+      payload.checkout_order_id = occId
+    }
+
+    // ✅ date_id 생성 (YYYY-MM-DD_LOCATION)
+    const date_id = `${day.date}_${location}`
+
+    // ✅ PUT 요청
+    const r = await fetch(`https://terene-db-server.onrender.com/api/v3/days/${date_id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     })
-    if (!r.ok) throw new Error(`occupancy ${occupied?"set":"clear"} failed: ${day.date}`)
+
+    if (!r.ok) {
+      throw new Error(
+        `occupancy ${occupied ? "set" : "clear"} failed: ${day.date_id || date_id} (${r.status})`
+      )
+    }
   }
 }
+
+
 
 async function restoreCouponsAndMileage_OnCancel(orderData) {
   try {
