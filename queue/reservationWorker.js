@@ -290,8 +290,8 @@ async function processJobA(payload) {
   } catch {}
 }
 
-async function processJobCD(job) {
-  const { orderId, actor, cancelMode } = job
+async function processJobCD(payload) {
+  const { orderId, actor, cancelMode } = payload
   const orderRes = await fetch(`https://terene-db-server.onrender.com/api/v2/orders/${orderId}`)
   if (!orderRes.ok) throw new Error("order fetch failed")
   const orderData = await orderRes.json()
@@ -377,8 +377,8 @@ async function processJobCD(job) {
   }
 }
 
-async function processJobEF(job) {
-  const { orderId, forceTemplate } = job
+async function processJobEF(payload) {
+  const { orderId, forceTemplate } = payload
   const now = kst()
   const nowISO = kstISO(new Date())
 
@@ -492,8 +492,8 @@ async function processJobEF(job) {
   }
 }
 
-async function processJobJK(job) {
-  const { orderId, type, settlementInfo, settlement_url } = job
+async function processJobJK(payload) {
+  const { orderId, type, settlementInfo, settlement_url } = payload
   const now = kst()
   const nowISO = kstISO(new Date())
 
@@ -567,8 +567,8 @@ async function processJobJK(job) {
   })
 }
 
-async function processJobL(job) {
-  const { orderId, type, settlementInfo } = job
+async function processJobL(payload) {
+  const { orderId, type, settlementInfo } = payload
   const now = kst()
   const nowISO = kstISO(new Date())
 
@@ -648,27 +648,27 @@ async function processJobL(job) {
   })
 }
 
-async function processJobN(job) {
+async function processJobN(payload) {
   const orderRes = await fetch("https://terene-db-server.onrender.com/api/v2/orders", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(job.orderPayload),
+    body: JSON.stringify(payload.orderPayload),
   })
   if (!orderRes.ok) throw new Error(await orderRes.text())
 
   // const created = await orderRes.json()
 
-  const orderData = job.orderPayload
+  const orderData = payload.orderPayload
 
   // try {
-  //   for (const p of job.notify?.adminPhones || []) {
+  //   for (const p of payload.notify?.adminPhones || []) {
   //     await fetch("https://terene-notifier-server.onrender.com/api/kakao/v2", {
   //       method: "POST",
   //       headers: { "Content-Type": "application/json" },
   //       body: JSON.stringify({
   //         receiver_phone: String(p).replace(/-/g, ""),
   //         template_type: "N",
-  //         params: job.templateParams,
+  //         params: payload.templateParams,
   //       }),
   //     })
   //   }
@@ -681,7 +681,7 @@ async function processJobN(job) {
       body: JSON.stringify({
         receiver_phone: String(orderData.reserver_contact).replace(/-/g, ""),
         template_type: "N",
-        params: job.templateParams,
+        params: payload.templateParams,
       }),
     })
   } catch {}
@@ -691,15 +691,15 @@ async function processJobN(job) {
   } catch {}
 }
 
-async function processJobO(job) {
-  const phone = String(job.contact).replace(/-/g, "")
+async function processJobO(payload) {
+  const phone = String(payload.contact).replace(/-/g, "")
   await fetch("https://terene-notifier-server.onrender.com/api/kakao/v2", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       receiver_phone: phone,
       template_type: "O",
-      params: { name: job.templateParams.name },
+      params: { name: payload.templateParams.name },
     }),
   })
 }
@@ -708,14 +708,14 @@ async function loop() {
   while (true) {
     const item = await take()
     try {
-      const k = item?.job?.kind
-      if (k === "A") await processJobA(item.job)
-      else if (k === "CD") await processJobCD(item.job)
-      else if (k === "EF") await processJobEF(item.job)
-      else if (k === "JK") await processJobJK(item.job)
-      else if (k === "L") await processJobL(item.job)
-      else if (k === "N") await processJobN(item.job)
-      else if (k === "O") await processJobO(item.job)
+      const k = item?.payload?.kind
+      if (k === "A") await processJobA(item.payload)
+      else if (k === "CD") await processJobCD(item.payload)
+      else if (k === "EF") await processJobEF(item.payload)
+      else if (k === "JK") await processJobJK(item.payload)
+      else if (k === "L") await processJobL(item.payload)
+      else if (k === "N") await processJobN(item.payload)
+      else if (k === "O") await processJobO(item.payload)
     } catch {}
   }
 }

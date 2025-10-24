@@ -6,9 +6,9 @@ const router = express.Router()
 const bus = new EventEmitter()
 const q = []
 
-function enqueue(job) {
+function enqueue(payload) {
   const id = `job_${Date.now()}_${Math.random().toString(36).slice(2)}`
-  q.push({ id, job, enqueuedAt: Date.now() })
+  q.push({ id, payload, enqueuedAt: Date.now() })
   bus.emit("added")
   return id
 }

@@ -2,10 +2,10 @@ const express = require('express');
 const nodemailer = require('nodemailer');
 const router = express.Router();
 
-const templates = require('../templates/messageTemplates');
+const templates = require('../templates')
 
 router.post('/', async (req, res) => {
-  const { receiver_email, template_type, params, platform } = req.body;
+  const { receiver_email, template_type, params, platform, lang } = req.body;
 
   if (!receiver_email || !template_type || !params || !platform) {
     return res.status(400).json({
@@ -13,7 +13,14 @@ router.post('/', async (req, res) => {
     });
   }
 
-  const template = templates[template_type];
+  const language = lang === 'paypal_en'
+    ? 'paypal_en'
+    : lang === 'paypal_ko'
+      ? 'paypal_ko'
+      : 'toss_ko'
+  const templateSet = templates[language]
+  const template = templateSet?.[template_type]
+
   if (!template) {
     return res.status(400).json({ error: '유효하지 않은 template_type입니다.' });
   }
