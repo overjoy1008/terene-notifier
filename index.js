@@ -39,6 +39,14 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser())
 
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    message: "Notifier server is healthy",
+    timestamp: new Date().toISOString(),
+  });
+});
+
 app.use('/api/email', emailRouter);
 app.use("/api/email/v2", emailRouterV2);
 app.use('/api/sms', smsRouter);
