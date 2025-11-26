@@ -273,14 +273,17 @@ async function processJobA(payload) {
             if (!defRes.ok) continue
             const def = await defRes.json()
             if (def.counter >= 1) {
+              const timestamp = entry.target_date ? `${entry.target_date}T00:00:00+09:00` : nowKST
+
               const updated = {
                 ...instance,
                 status: "used",
                 order_id: fullUpdatedOrder.order_id,
                 used_location: fullUpdatedOrder.stay_location,
-                used_timestamp: nowKST,
+                used_timestamp: timestamp,
                 used_amount: entry.amount,
               }
+
               await fetch(`https://terene-db-server.onrender.com/api/v2/coupon-instances/${instance.coupon_instance_id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
