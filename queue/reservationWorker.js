@@ -881,6 +881,10 @@ async function processJobO(payload) {
 async function loop() {
   while (true) {
     const item = await take()
+
+    // stdout flush 문제 해결
+    await new Promise((r) => setImmediate(r))
+
     try {
       const k = item?.payload?.kind
       if (k === "A") {
