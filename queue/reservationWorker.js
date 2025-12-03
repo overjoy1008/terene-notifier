@@ -254,8 +254,10 @@ async function processJobA(payload) {
   if (!updateOrder.ok) throw new Error("order update failed")
 
   try {
-    await updateDaysOccupancy(orderData, true)
-  } catch {}
+    await updateDaysOccupancy(fullUpdatedOrder, true)
+  } catch (err) {
+    console.error("updateDaysOccupancy ERROR:", err)
+  }
 
   try {
     const couponRes = await fetch("https://terene-db-server.onrender.com/api/v2/coupon-instances")
