@@ -883,14 +883,24 @@ async function loop() {
     const item = await take()
     try {
       const k = item?.payload?.kind
-      if (k === "A") await processJobA(item.payload)
-      else if (k === "CD") await processJobCD(item.payload)
+      if (k === "A") {
+        console.log("[Worker] Running Job A:", item.id)
+        await processJobA(item.payload)
+        console.log("[Worker] Job A Done:", item.id)
+      }
+      else if (k === "CD") {
+        console.log("[Worker] Running Job CD:", item.id)
+        await processJobCD(item.payload)
+        console.log("[Worker] Job CD Done:", item.id)
+      }
       else if (k === "EF") await processJobEF(item.payload)
       else if (k === "JK") await processJobJK(item.payload)
       else if (k === "L") await processJobL(item.payload)
       else if (k === "N") await processJobN(item.payload)
       else if (k === "O") await processJobO(item.payload)
-    } catch {}
+    } catch (err) {
+      console.error("❌ [Worker] Error in job", item?.id, err)
+    }
   }
 }
 
