@@ -33,6 +33,7 @@ router.post("/login", async (req, res) => {
             remarks: user.remarks,
             owned_mileage: user.owned_mileage,
             used_coupons: user.expired_coupons,
+            nationality: user.nationality,
         }
 
         let tokenOptions = {}

@@ -897,11 +897,31 @@ async function loop() {
         await processJobCD(item.payload)
         console.log("[Worker] Job CD Done:", item.id)
       }
-      else if (k === "EF") await processJobEF(item.payload)
-      else if (k === "JK") await processJobJK(item.payload)
-      else if (k === "L") await processJobL(item.payload)
-      else if (k === "N") await processJobN(item.payload)
-      else if (k === "O") await processJobO(item.payload)
+      else if (k === "EF") {
+        console.log("[Worker] Running Job EF:", item.id)
+        await processJobEF(item.payload)
+        console.log("[Worker] Job EF Done:", item.id)
+      }
+      else if (k === "JK") {
+        console.log("[Worker] Running Job JK:", item.id)
+        await processJobJK(item.payload)
+        console.log("[Worker] Job JK Done:", item.id)
+      }
+      else if (k === "L") {
+        console.log("[Worker] Running Job L:", item.id)
+        await processJobL(item.payload)
+        console.log("[Worker] Job L Done:", item.id)
+      }
+      else if (k === "N") {
+        console.log("[Worker] Running Job N:", item.id)
+        await processJobN(item.payload)
+        console.log("[Worker] Job N Done:", item.id)
+      }
+      else if (k === "O") {
+        console.log("[Worker] Running Job O:", item.id)
+        await processJobO(item.payload)
+        console.log("[Worker] Job O Done:", item.id)
+      }
     } catch (err) {
       console.error("❌ [Worker] Error in job", item?.id, err)
     }
