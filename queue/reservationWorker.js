@@ -196,7 +196,7 @@ async function restoreCouponsAndMileage_OnCancel(orderData) {
 }
 
 async function processJobA(payload) {
-  const { orderId, amount, paymentKey, isFree, templateParams, templateParamsB } = payload
+  const { orderId, amount, paymentKey, isFree, isAdminBypass, templateParams, templateParamsB } = payload
   const { adminPhones, adminEmails } = await fetchAdminContacts()
 
   const orderRes = await fetch(`https://terene-db-server.onrender.com/api/v2/orders/${orderId}`)
@@ -215,13 +215,13 @@ async function processJobA(payload) {
     payment_type: "order",
     order_id: orderId,
     payment_info: {
-      paymentKey: isFree ? null : paymentKey,
+      paymentKey: isFree ? null : isAdminBypass ? null : paymentKey,
       same_as_reserver: true,
       name: orderData.reserver_name,
       birthdate: orderData.reserver_birthdate,
       contact: String(orderData.reserver_contact),
     },
-    payment_method: isFree ? "Free" : "Toss Payments",
+    payment_method: isFree ? "Free" : isAdminBypass ? "Admin Bypass" : "Toss Payments",
     payment_account: { is_vaadd: false, account_holder: null, bank_name: null, account_number: null },
     receiver_account: { is_vaadd: true, account_holder: null, bank_name: null, account_number: null },
     payment_due: kstISO(new Date(now.getTime() + 24 * 3600000)),
