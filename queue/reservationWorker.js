@@ -41,31 +41,6 @@ async function fetchAdminContacts() {
   return { adminPhones, adminEmails }
 }
 
-// async function updateDaysOccupancy(orderData, occupied) {
-//   const allDays = await fetchJSON(`https://terene-db-server.onrender.com/api/days`)
-//   const dateRange = []
-//   let cur = new Date(orderData.checkin_date)
-//   const end = new Date(orderData.checkout_date)
-//   while (cur <= end) {
-//     dateRange.push(cur.toISOString().split("T")[0])
-//     cur.setDate(cur.getDate() + 1)
-//   }
-//   const targets = allDays.filter((d) => dateRange.includes(d.date))
-//   for (const day of targets) {
-//     const x = { ...day }
-//     const payload = occupied
-//       ? { is_occupied: true,  occupied_order_id: orderData.order_id }
-//       : { is_occupied: false, occupied_order_id: null }
-//     if (day.date === orderData.checkin_date) x.checkin = payload
-//     else if (day.date === orderData.checkout_date) x.checkout = payload
-//     else { x.checkin = payload; x.checkout = payload }
-//     const r = await fetch(`https://terene-db-server.onrender.com/api/days/${day.date}`, {
-//       method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(x),
-//     })
-//     if (!r.ok) throw new Error(`occupancy ${occupied?"set":"clear"} failed: ${day.date}`)
-//   }
-// }
-
 async function updateDaysOccupancy(orderData, occupied) {
   // ✅ 새 엔드포인트: /api/v3/days
   const allDays = await fetchJSON(`https://terene-db-server.onrender.com/api/v3/days`)
@@ -123,8 +98,6 @@ async function updateDaysOccupancy(orderData, occupied) {
     }
   }
 }
-
-
 
 async function restoreCouponsAndMileage_OnCancel(orderData) {
   try {
@@ -194,6 +167,23 @@ async function restoreCouponsAndMileage_OnCancel(orderData) {
     }
   } catch {}
 }
+
+async function getRefundRatesByDays(diffDays) {
+  const policies = await fetchJSON(
+    "https://terene-db-server.onrender.com/api/v3/refund-policy"
+  )
+
+  const p = policies.find(
+    (x) => diffDays >= x.start_dday && diffDays <= x.end_dday
+  )
+
+  return {
+    lodgingRate: (p?.dvc_percent ?? 0) / 100,
+    serviceRate: (p?.svc_percent ?? 0) / 100,
+    depositRate: (p?.dpc_percent ?? 0) / 100,
+  }
+}
+
 
 async function processJobA(payload) {
   const { orderId, amount, paymentKey, isFree, isAdminBypass, templateParams, templateParamsB } = payload
@@ -410,12 +400,28 @@ async function processJobCD(payload) {
   const serviceBase = (orderData.service_price?.amount || 0) * 1.1
   const deposit = orderData.deposit_price || 0
 
-  const lodgingRate = actor==="admin" ? 1.0 : (diffDays>=31 ? 1.0 : diffDays>=15 ? 0.8 : diffDays>=10 ? 0.6 : 0.0)
-  const serviceRate = actor==="admin" ? 1.0 : (diffDays>=10 ? 1.0 : 0.0)
+  // const lodgingRate = actor==="admin" ? 1.0 : (diffDays>=31 ? 1.0 : diffDays>=15 ? 0.8 : diffDays>=10 ? 0.6 : 0.0)
+  // const serviceRate = actor==="admin" ? 1.0 : (diffDays>=10 ? 1.0 : 0.0)
+
+  // const lodgingRefund = lodgingBase * lodgingRate
+  // const serviceRefund = serviceBase * serviceRate
+  // const depositRefund = deposit * 1.0
+
+  let lodgingRate = 1.0
+  let serviceRate = 1.0
+  let depositRate = 1.0
+
+  if (actor !== "admin") {
+    const r = await getRefundRatesByDays(diffDays)
+    lodgingRate = r.lodgingRate
+    serviceRate = r.serviceRate
+    depositRate = r.depositRate
+  }
 
   const lodgingRefund = lodgingBase * lodgingRate
   const serviceRefund = serviceBase * serviceRate
-  const depositRefund = deposit * 1.0
+  const depositRefund = deposit * depositRate
+  
   const totalRefund = Math.round(lodgingRefund + serviceRefund + depositRefund)
 
   const isPaidFlow = cancelMode === "cancel"
@@ -523,12 +529,28 @@ async function processJobEF(payload) {
   const deposit = orderData.deposit_price || 0
 
   const isCustomer = targetCancellation.cancel_person === "customer"
-  const lodgingRate = isCustomer ? (diffDays>=31 ? 1.0 : diffDays>=15 ? 0.8 : diffDays>=10 ? 0.6 : 0.0) : 1.0
-  const serviceRate = isCustomer ? (diffDays>=10 ? 1.0 : 0.0) : 1.0
+  // const lodgingRate = isCustomer ? (diffDays>=31 ? 1.0 : diffDays>=15 ? 0.8 : diffDays>=10 ? 0.6 : 0.0) : 1.0
+  // const serviceRate = isCustomer ? (diffDays>=10 ? 1.0 : 0.0) : 1.0
+
+  // const lodgingRefund = lodgingBase * lodgingRate
+  // const serviceRefund = serviceBase * serviceRate
+  // const depositRefund = deposit * 1.0
+
+  let lodgingRate = 1.0
+  let serviceRate = 1.0
+  let depositRate = 1.0
+
+  if (isCustomer) {
+    const r = await getRefundRatesByDays(diffDays)
+    lodgingRate = r.lodgingRate
+    serviceRate = r.serviceRate
+    depositRate = r.depositRate
+  }
 
   const lodgingRefund = lodgingBase * lodgingRate
   const serviceRefund = serviceBase * serviceRate
-  const depositRefund = deposit * 1.0
+  const depositRefund = deposit * depositRate
+
   const totalRefund = Math.round(lodgingRefund + serviceRefund + depositRefund)
 
   const updatedPayment = {
