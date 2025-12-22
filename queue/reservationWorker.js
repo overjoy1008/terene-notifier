@@ -41,9 +41,13 @@ async function fetchAdminContacts() {
   return { adminPhones, adminEmails }
 }
 
-async function updateDaysOccupancy(orderData, occupied) {
+async function updateDaysOccupancy(orderData, occupied, testMode = false) {
+  const basePath = testMode
+    ? "https://terene-db-server.onrender.com/api/test/days"
+    : "https://terene-db-server.onrender.com/api/v3/days"
+
   // ✅ 새 엔드포인트: /api/v3/days
-  const allDays = await fetchJSON(`https://terene-db-server.onrender.com/api/v3/days`)
+  const allDays = await fetchJSON(basePath)
 
   // ✅ checkin~checkout 구간 날짜 리스트 생성
   const dateRange = []
@@ -186,7 +190,7 @@ async function getRefundRatesByDays(diffDays) {
 
 
 async function processJobA(payload) {
-  const { orderId, amount, paymentKey, isFree, isAdminBypass, templateParams, templateParamsB } = payload
+  const { orderId, amount, paymentKey, isFree, isAdminBypass, templateParams, templateParamsB, testMode } = payload
   const { adminPhones, adminEmails } = await fetchAdminContacts()
 
   const orderRes = await fetch(`https://terene-db-server.onrender.com/api/v2/orders/${orderId}`)
@@ -244,7 +248,7 @@ async function processJobA(payload) {
   if (!updateOrder.ok) throw new Error("order update failed")
 
   try {
-    await updateDaysOccupancy(fullUpdatedOrder, true)
+    await updateDaysOccupancy(fullUpdatedOrder, true, testMode)
   } catch (err) {
     console.error("updateDaysOccupancy ERROR:", err)
   }
@@ -381,7 +385,7 @@ async function processJobA(payload) {
 }
 
 async function processJobCD(payload) {
-  const { orderId, actor, cancelMode } = payload
+  const { orderId, actor, cancelMode, testMode } = payload
   const { adminPhones, adminEmails } = await fetchAdminContacts()
 
   const orderRes = await fetch(`https://terene-db-server.onrender.com/api/v2/orders/${orderId}`)
@@ -438,7 +442,7 @@ async function processJobCD(payload) {
   })
   if (!cRes.ok) throw new Error("cancellation create failed")
 
-  await updateDaysOccupancy(orderData, false)
+  await updateDaysOccupancy(orderData, false, testMode)
   await restoreCouponsAndMileage_OnCancel(orderData)
 
   if (isPaidFlow) {
@@ -505,7 +509,7 @@ async function processJobCD(payload) {
 }
 
 async function processJobEF(payload) {
-  const { orderId, forceTemplate } = payload
+  const { orderId } = payload
   const { adminPhones, adminEmails } = await fetchAdminContacts()
 
   const now = kst()

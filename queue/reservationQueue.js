@@ -15,7 +15,7 @@ function enqueue(payload) {
 
 router.post("/A", async (req, res) => {
   try {
-    const { orderId, amount, paymentKey, isFree, isAdminBypass, templateParams, templateParamsB, notify } = req.body
+    const { orderId, amount, paymentKey, isFree, isAdminBypass, templateParams, templateParamsB, test_mode } = req.body
     if (!orderId) return res.status(400).json({ error: "orderId required" })
     const id = enqueue({
       kind: "A",
@@ -26,6 +26,7 @@ router.post("/A", async (req, res) => {
       isAdminBypass: !!isAdminBypass,
       templateParams: templateParams || {},
       templateParamsB: templateParamsB || {},
+      test_mode: !!test_mode,
     })
     res.json({ ok: true, jobId: id })
   } catch (e) {
@@ -35,11 +36,11 @@ router.post("/A", async (req, res) => {
 
 router.post("/CD", async (req, res) => {
   try {
-    const { orderId, actor, cancelMode } = req.body
+    const { orderId, actor, cancelMode, testMode } = req.body
     if (!orderId) return res.status(400).json({ error: "orderId required" })
     if (!["admin","customer"].includes(actor)) return res.status(400).json({ error: "actor invalid" })
     if (!["decline","cancel"].includes(cancelMode)) return res.status(400).json({ error: "cancelMode invalid" })
-    const id = enqueue({ kind: "CD", orderId, actor, cancelMode })
+    const id = enqueue({ kind: "CD", orderId, actor, cancelMode, testMode: !!testMode })
     res.json({ ok: true, jobId: id })
   } catch (e) {
     res.status(500).json({ error: String(e?.message || e) })
