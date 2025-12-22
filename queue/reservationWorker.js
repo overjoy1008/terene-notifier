@@ -483,7 +483,7 @@ async function processJobCD(payload) {
       final_price: String(Number(orderData.final_price ?? "0").toLocaleString()),
     }
     
-    if (actor === "admin") {
+    if (actor !== "admin") {
       try {
         for (const p of adminPhones || []) {
           await fetch(`https://terene-notifier-server.onrender.com/api/kakao/v2`, {
