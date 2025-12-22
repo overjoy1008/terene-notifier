@@ -21,9 +21,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 const allowedOrigins = [
-  "https://necessary-tenure-684644.framer.app",
   "https://terene.kr",
-  "https://grounded-step-690184.framer.app/",
+  "https://necessary-tenure-684644.framer.app",
+  "https://grounded-step-690184.framer.app",
 ];
 
 app.use(cors({
