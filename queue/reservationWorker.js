@@ -482,24 +482,26 @@ async function processJobCD(payload) {
       child: String(orderData.stay_people?.child),
       final_price: String(Number(orderData.final_price ?? "0").toLocaleString()),
     }
+    
+    if (actor === "admin") {
+      try {
+        for (const p of adminPhones || []) {
+          await fetch(`https://terene-notifier-server.onrender.com/api/kakao/v2`, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ receiver_phone: String(p).replace(/-/g,""), template_type: "C", params: templateParamsB }),
+          })
+        }
+      } catch {}
 
-    try {
-      for (const p of adminPhones || []) {
-        await fetch(`https://terene-notifier-server.onrender.com/api/kakao/v2`, {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ receiver_phone: String(p).replace(/-/g,""), template_type: "C", params: templateParamsB }),
-        })
-      }
-    } catch {}
-
-    try {
-      for (const e of adminEmails || []) {
-        await fetch(`https://terene-notifier-server.onrender.com/api/email/v2`, {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ receiver_email: e, template_type: "C", platform: "gmail", params: templateParamsB }),
-        })
-      }
-    } catch {}
+      try {
+        for (const e of adminEmails || []) {
+          await fetch(`https://terene-notifier-server.onrender.com/api/email/v2`, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ receiver_email: e, template_type: "C", platform: "gmail", params: templateParamsB }),
+          })
+        }
+      } catch {}
+    }
 
     // await fetch(`https://terene-notifier-server.onrender.com/api/kakao/v2`, {
     //   method: "POST", headers: { "Content-Type": "application/json" },
