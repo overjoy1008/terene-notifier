@@ -177,9 +177,11 @@ async function getRefundRatesByDays(diffDays) {
     "https://terene-db-server.onrender.com/api/v3/refund-policy"
   )
 
-  const p = policies.find(
+  const p = policies
+  .filter(
     (x) => diffDays >= x.start_dday && diffDays <= x.end_dday
   )
+  .sort((a, b) => a.policy_id - b.policy_id)[0]
 
   return {
     lodgingRate: (p?.dvc_percent ?? 0) / 100,
