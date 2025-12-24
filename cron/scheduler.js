@@ -63,6 +63,22 @@ function startScheduledJobs() {
         a.getMonth() === b.getMonth() &&
         a.getDate() === b.getDate();
 
+      const isD1Date = (a, b) => {
+        const aDate = new Date(a.getFullYear(), a.getMonth(), a.getDate());
+        const bDate = new Date(b.getFullYear(), b.getMonth(), b.getDate());
+        const diffTime = bDate - aDate;
+        const diffDays = diffTime / (1000 * 60 * 60 * 24);
+        return diffDays === 1;
+      };
+
+      const isD7Date = (a, b) => {
+        const aDate = new Date(a.getFullYear(), a.getMonth(), a.getDate());
+        const bDate = new Date(b.getFullYear(), b.getMonth(), b.getDate());
+        const diffTime = bDate - aDate;
+        const diffDays = diffTime / (1000 * 60 * 60 * 24);
+        return diffDays === 7;
+      };
+
       function toKSTISOString(date) {
         const yyyy = date.getFullYear();
         const mm = String(date.getMonth() + 1).padStart(2, '0');
@@ -82,8 +98,12 @@ function startScheduledJobs() {
 
         const shouldSendG = isAround(kstHours, kstMinutes, 8, 0) && isSameDate(today, checkinDate);
         const shouldSendH = isAround(kstHours, kstMinutes, 12, 0) && isSameDate(today, checkinDate);
-        const shouldSendI = isAround(kstHours, kstMinutes, 10, 30) && isSameDate(today, checkoutDate);
-        const shouldUpdateStatus = isAround(kstHours, kstMinutes, 11, 0);
+        const shouldSendI = isAround(kstHours, kstMinutes, 10, 0) && isSameDate(today, checkoutDate);
+        const shouldUpdateStatus = isAround(kstHours, kstMinutes, 10, 30);
+
+        const shouldSendGForeign = isAround(kstHours, kstMinutes, 8, 0) && isD7Date(today, checkinDate);
+        const shouldSendHForeign = isAround(kstHours, kstMinutes, 8, 0) && isD1Date(today, checkinDate);
+        const shouldSendIForeign = isAround(kstHours, kstMinutes, 10, 30) && isSameDate(today, checkoutDate);
 
         const lang = order.nationality === 'foreign' ? "foreign_en" : "toss_kr";
 
@@ -120,7 +140,7 @@ function startScheduledJobs() {
           }
         }
 
-        if (!shouldSendG && !shouldSendH && !shouldSendI) continue;
+        if (!shouldSendG && !shouldSendH && !shouldSendI && !shouldSendGForeign && !shouldSendHForeign && !shouldSendIForeign) continue;
 
         const orderParamsG_customer = {
           stay_location: order.stay_location,
@@ -172,26 +192,14 @@ function startScheduledJobs() {
           reserver_name: order.stay_info.name,
         };
 
-        if (shouldSendG) {
-
-          if (lang !== "foreign_en") try {
+        if (shouldSendG && lang !== "foreign_en") {
+          try {
             await axios.post(`https://terene-notifier-server.onrender.com/api/kakao/v2`, {
               receiver_phone: order.stay_info.contact.replace(/-/g, ''),
               template_type: 'G_customer',
               params: orderParamsG_customer,
             });
           } catch {}
-
-          if (lang === "foreign_en") try {
-            await axios.post(`https://terene-notifier-server.onrender.com/api/email/v2`, {
-              receiver_email: order.reserver_email,
-              template_type: 'G_customer',
-              platform: 'gmail',
-              params: orderParamsG_customer,
-              lang: lang,
-            });
-          } catch {}
-
           try {
             for (const adminPhone of adminPhones || []) {
               await axios.post(`https://terene-notifier-server.onrender.com/api/kakao/v2`, {
@@ -213,14 +221,49 @@ function startScheduledJobs() {
           } catch {}
         }
 
-        if (shouldSendH) {
+        if (shouldSendGForeign && lang === "foreign_en") {
+          try {
+            await axios.post(`https://terene-notifier-server.onrender.com/api/email/v2`, {
+              receiver_email: order.reserver_email,
+              template_type: 'G_customer',
+              platform: 'gmail',
+              params: orderParamsG_customer,
+              lang: lang,
+            });
+          } catch {}
+          try {
+            for (const adminPhone of adminPhones || []) {
+              await axios.post(`https://terene-notifier-server.onrender.com/api/kakao/v2`, {
+                receiver_phone: adminPhone.replace(/-/g, ''),
+                template_type: 'G_admin',
+                params: orderParamsG_admin,
+              });
+            }
+          } catch {}
+          try {
+            for (const adminEmail of adminEmails || []) {
+              await axios.post(`https://terene-notifier-server.onrender.com/api/email/v2`, {
+                receiver_email: adminEmail,
+                template_type: 'G_admin',
+                platform: 'gmail',
+                params: orderParamsG_admin,
+              });
+            }
+          } catch {}
+        }
 
-          if (lang !== "foreign_en") await axios.post(`https://terene-notifier-server.onrender.com/api/kakao/v2`, {
+
+
+        if (shouldSendH && lang !== "foreign_en") {
+          await axios.post(`https://terene-notifier-server.onrender.com/api/kakao/v2`, {
             receiver_phone: order.stay_info.contact.replace(/-/g, ''),
             template_type: 'H',
             params: orderParamsH,
           });
-          if (lang === "foreign_en") await axios.post(`https://terene-notifier-server.onrender.com/api/email/v2`, {
+        }
+
+        if (shouldSendHForeign && lang === "foreign_en") {
+          await axios.post(`https://terene-notifier-server.onrender.com/api/email/v2`, {
             receiver_email: order.reserver_email,
             template_type: 'H',
             platform: 'gmail',
@@ -229,14 +272,18 @@ function startScheduledJobs() {
           });
         }
 
-        if (shouldSendI) {
 
-          if (lang !== "foreign_en") await axios.post(`https://terene-notifier-server.onrender.com/api/kakao/v2`, {
+
+        if (shouldSendI && lang !== "foreign_en") {
+          await axios.post(`https://terene-notifier-server.onrender.com/api/kakao/v2`, {
             receiver_phone: order.stay_info.contact.replace(/-/g, ''),
             template_type: 'I',
             params: orderParamsI,
           });
-          if (lang === "foreign_en") await axios.post(`https://terene-notifier-server.onrender.com/api/email/v2`, {
+        }
+
+        if (shouldSendIForeign && lang === "foreign_en") {
+          await axios.post(`https://terene-notifier-server.onrender.com/api/email/v2`, {
             receiver_email: order.reserver_email,
             template_type: 'I',
             platform: 'gmail',
