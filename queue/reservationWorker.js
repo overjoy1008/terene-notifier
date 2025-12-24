@@ -190,7 +190,7 @@ async function getRefundRatesByDays(diffDays) {
 
 
 async function processJobA(payload) {
-  const { orderId, amount, paymentKey, isFree, isAdminBypass, templateParams, templateParamsB, testMode } = payload
+  const { orderId, amount, paymentKey, isFree, isAdminBypass, templateParams, templateParamsB, testMode, lang } = payload
   const { adminPhones, adminEmails } = await fetchAdminContacts()
 
   const orderRes = await fetch(`https://terene-db-server.onrender.com/api/v2/orders/${orderId}`)
@@ -346,7 +346,7 @@ async function processJobA(payload) {
     }
   } catch {}
 
-  try {
+  if (lang !== "foreign_en") try {
     await fetch("https://terene-notifier-server.onrender.com/api/kakao/v2", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -366,10 +366,11 @@ async function processJobA(payload) {
         template_type: "A",
         platform: "gmail",
         params: templateParamsB || templateParams,
+        lang: lang,
       }),
     })
   } catch {}
-  try {
+  if (lang !== "foreign_en") try {
     if (!orderData.stay_info?.same_as_reserver && orderData.stay_info?.contact) {
       await fetch("https://terene-notifier-server.onrender.com/api/kakao/v2", {
         method: "POST",
@@ -385,7 +386,7 @@ async function processJobA(payload) {
 }
 
 async function processJobCD(payload) {
-  const { orderId, actor, cancelMode, testMode } = payload
+  const { orderId, actor, cancelMode, testMode, lang } = payload
   const { adminPhones, adminEmails } = await fetchAdminContacts()
 
   const orderRes = await fetch(`https://terene-db-server.onrender.com/api/v2/orders/${orderId}`)
@@ -511,7 +512,7 @@ async function processJobCD(payload) {
 }
 
 async function processJobEF(payload) {
-  const { orderId } = payload
+  const { orderId, testMode, lang } = payload
   const { adminPhones, adminEmails } = await fetchAdminContacts()
 
   const now = kst()
@@ -644,15 +645,15 @@ async function processJobEF(payload) {
     }
   } catch {}
 
-  await fetch(`https://terene-notifier-server.onrender.com/api/kakao/v2`, {
+  if (lang !== "foreign_en") await fetch(`https://terene-notifier-server.onrender.com/api/kakao/v2`, {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ receiver_phone: String(orderData.reserver_contact).replace(/-/g,""), template_type: templateCode, params: paramsB }),
   })
   await fetch(`https://terene-notifier-server.onrender.com/api/email/v2`, {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ receiver_email: orderData.reserver_email, template_type: templateCode, platform: "gmail", params: paramsB }),
+    body: JSON.stringify({ receiver_email: orderData.reserver_email, template_type: templateCode, platform: "gmail", params: paramsB, lang: lang }),
   })
-  if (!orderData.stay_info?.same_as_reserver && orderData.stay_info?.contact) {
+  if (lang !== "foreign_en" && !orderData.stay_info?.same_as_reserver && orderData.stay_info?.contact) {
     await fetch(`https://terene-notifier-server.onrender.com/api/kakao/v2`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ receiver_phone: String(orderData.stay_info.contact).replace(/-/g,""), template_type: templateCode, params: paramsB }),
@@ -661,7 +662,7 @@ async function processJobEF(payload) {
 }
 
 async function processJobJK(payload) {
-  const { orderId, type, settlementInfo, settlement_url } = payload
+  const { orderId, type, settlementInfo, settlement_url, testMode, lang } = payload
   const now = kst()
   const nowISO = kstISO(new Date())
 
@@ -725,18 +726,18 @@ async function processJobJK(payload) {
     ...(type === "additional" && settlement_url ? { settlement_url } : {}),
   }
 
-  await fetch(`https://terene-notifier-server.onrender.com/api/kakao/v2`, {
+  if (lang !== "foreign_en") await fetch(`https://terene-notifier-server.onrender.com/api/kakao/v2`, {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ receiver_phone: String(orderData.reserver_contact).replace(/-/g,""), template_type: templateCode, params }),
   })
   await fetch(`https://terene-notifier-server.onrender.com/api/email/v2`, {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ receiver_email: orderData.reserver_email, template_type: templateCode, platform: "gmail", params }),
+    body: JSON.stringify({ receiver_email: orderData.reserver_email, template_type: templateCode, platform: "gmail", params, lang: lang }),
   })
 }
 
 async function processJobL(payload) {
-  const { orderId, type, settlementInfo } = payload
+  const { orderId, type, settlementInfo, testMode } = payload
   const { adminPhones, adminEmails } = await fetchAdminContacts()
 
   const now = kst()

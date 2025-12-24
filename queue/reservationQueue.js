@@ -15,7 +15,7 @@ function enqueue(payload) {
 
 router.post("/A", async (req, res) => {
   try {
-    const { orderId, amount, paymentKey, isFree, isAdminBypass, templateParams, templateParamsB, test_mode } = req.body
+    const { orderId, amount, paymentKey, isFree, isAdminBypass, templateParams, templateParamsB, test_mode, lang } = req.body
     if (!orderId) return res.status(400).json({ error: "orderId required" })
     const id = enqueue({
       kind: "A",
@@ -27,6 +27,7 @@ router.post("/A", async (req, res) => {
       templateParams: templateParams || {},
       templateParamsB: templateParamsB || {},
       test_mode: !!test_mode,
+      lang,
     })
     res.json({ ok: true, jobId: id })
   } catch (e) {
@@ -36,7 +37,7 @@ router.post("/A", async (req, res) => {
 
 router.post("/CD", async (req, res) => {
   try {
-    const { orderId, actor, cancelMode, testMode } = req.body
+    const { orderId, actor, cancelMode, testMode, lang } = req.body
     if (!orderId) return res.status(400).json({ error: "orderId required" })
     if (!["admin","customer"].includes(actor)) return res.status(400).json({ error: "actor invalid" })
     if (!["decline","cancel"].includes(cancelMode)) return res.status(400).json({ error: "cancelMode invalid" })
@@ -49,7 +50,7 @@ router.post("/CD", async (req, res) => {
 
 router.post("/EF", async (req, res) => {
   try {
-    const { orderId } = req.body
+    const { orderId, testMode, lang } = req.body
     if (!orderId) return res.status(400).json({ error: "orderId required" })
     const id = enqueue({ kind: "EF", orderId })
     res.json({ ok: true, jobId: id })
@@ -60,7 +61,7 @@ router.post("/EF", async (req, res) => {
 
 router.post("/JK", async (req, res) => {
   try {
-    const { orderId, type, settlementInfo, settlement_url } = req.body
+    const { orderId, type, settlementInfo, settlement_url, testMode, lang } = req.body
     if (!orderId) return res.status(400).json({ error: "orderId required" })
     if (!["refund","additional"].includes(type)) return res.status(400).json({ error: "type invalid" })
     const id = enqueue({ kind: "JK", orderId, type, settlementInfo, settlement_url: settlement_url || null })
@@ -72,7 +73,7 @@ router.post("/JK", async (req, res) => {
 
 router.post("/L", async (req, res) => {
   try {
-    const { orderId, type, settlementInfo } = req.body
+    const { orderId, type, settlementInfo, testMode } = req.body
     if (!orderId) return res.status(400).json({ error: "orderId required" })
     if (!["refund","additional","complete"].includes(type)) return res.status(400).json({ error: "type invalid" })
     const id = enqueue({ kind: "L", orderId, type, settlementInfo: settlementInfo || null })

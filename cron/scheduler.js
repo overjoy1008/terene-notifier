@@ -82,8 +82,10 @@ function startScheduledJobs() {
 
         const shouldSendG = isAround(kstHours, kstMinutes, 8, 0) && isSameDate(today, checkinDate);
         const shouldSendH = isAround(kstHours, kstMinutes, 12, 0) && isSameDate(today, checkinDate);
-        const shouldSendI = isAround(kstHours, kstMinutes, 10, 0) && isSameDate(today, checkoutDate);
-        const shouldUpdateStatus = isAround(kstHours, kstMinutes, 10, 30);
+        const shouldSendI = isAround(kstHours, kstMinutes, 10, 30) && isSameDate(today, checkoutDate);
+        const shouldUpdateStatus = isAround(kstHours, kstMinutes, 11, 0);
+
+        const lang = order.nationality === 'foreign' ? "foreign_en" : "toss_kr";
 
         if (shouldUpdateStatus) {
           const stayHistory = order.stay_history || [];
@@ -162,20 +164,31 @@ function startScheduledJobs() {
         const orderParamsH = {
           stay_location: order.stay_location,
           reserver_name: order.stay_info.name,
-          door_code: order.reserver_contact.replace(/-/g, '').slice(-4),
+          door_code: order.reserver_contact.replace(/[^0-9]/g, '').slice(-4),
         };
 
         const orderParamsI = {
           stay_location: order.stay_location,
+          reserver_name: order.stay_info.name,
         };
 
         if (shouldSendG) {
 
-          try {
+          if (lang !== "foreign_en") try {
             await axios.post(`https://terene-notifier-server.onrender.com/api/kakao/v2`, {
               receiver_phone: order.stay_info.contact.replace(/-/g, ''),
               template_type: 'G_customer',
               params: orderParamsG_customer,
+            });
+          } catch {}
+
+          if (lang === "foreign_en") try {
+            await axios.post(`https://terene-notifier-server.onrender.com/api/email/v2`, {
+              receiver_email: order.reserver_email,
+              template_type: 'G_customer',
+              platform: 'gmail',
+              params: orderParamsG_customer,
+              lang: lang,
             });
           } catch {}
 
@@ -202,19 +215,33 @@ function startScheduledJobs() {
 
         if (shouldSendH) {
 
-          await axios.post(`https://terene-notifier-server.onrender.com/api/kakao/v2`, {
+          if (lang !== "foreign_en") await axios.post(`https://terene-notifier-server.onrender.com/api/kakao/v2`, {
             receiver_phone: order.stay_info.contact.replace(/-/g, ''),
             template_type: 'H',
             params: orderParamsH,
+          });
+          if (lang === "foreign_en") await axios.post(`https://terene-notifier-server.onrender.com/api/email/v2`, {
+            receiver_email: order.reserver_email,
+            template_type: 'H',
+            platform: 'gmail',
+            params: orderParamsH,
+            lang: lang,
           });
         }
 
         if (shouldSendI) {
 
-          await axios.post(`https://terene-notifier-server.onrender.com/api/kakao/v2`, {
+          if (lang !== "foreign_en") await axios.post(`https://terene-notifier-server.onrender.com/api/kakao/v2`, {
             receiver_phone: order.stay_info.contact.replace(/-/g, ''),
             template_type: 'I',
             params: orderParamsI,
+          });
+          if (lang === "foreign_en") await axios.post(`https://terene-notifier-server.onrender.com/api/email/v2`, {
+            receiver_email: order.reserver_email,
+            template_type: 'I',
+            platform: 'gmail',
+            params: orderParamsI,
+            lang: lang,
           });
         }
       }

@@ -16,11 +16,9 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'receiver_phone, template_type, params는 필수입니다.' });
   }
 
-  const language = lang === 'paypal_en'
-    ? 'paypal_en'
-    : lang === 'paypal_ko'
-      ? 'paypal_ko'
-      : 'toss_ko'
+  const language = lang === 'foreign_en'
+    ? 'foreign_en'
+    : 'toss_ko'
   const templateSet = templates[language]
   const template = templateSet?.[template_type]
   

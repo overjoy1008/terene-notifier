@@ -1,11 +1,18 @@
 const express = require('express');
 const nodemailer = require('nodemailer');
 const router = express.Router();
+const path = require("path")
 
 const templates = require('../templates')
 
+const DEFAULT_PDF_PATH = path.join(
+    __dirname,
+    "../templates/terene_unmu_policies.pdf"
+)
+const DEFAULT_PDF_NAME = "terene_unmu_policies.pdf"
+
 router.post('/', async (req, res) => {
-  const { receiver_email, template_type, params, platform, lang } = req.body;
+  const { receiver_email, template_type, params, platform, lang, pdfPath, pdfName } = req.body;
 
   if (!receiver_email || !template_type || !params || !platform) {
     return res.status(400).json({
@@ -13,11 +20,9 @@ router.post('/', async (req, res) => {
     });
   }
 
-  const language = lang === 'paypal_en'
-    ? 'paypal_en'
-    : lang === 'paypal_ko'
-      ? 'paypal_ko'
-      : 'toss_ko'
+  const language = lang === 'foreign_en'
+    ? 'foreign_en'
+    : 'toss_ko'
   const templateSet = templates[language]
   const template = templateSet?.[template_type]
 
@@ -58,6 +63,22 @@ router.post('/', async (req, res) => {
       to: receiver_email,
       subject: email_subject,
       text: email_body,
+
+      ...(language === 'foreign_en'
+        ? {
+            attachments: [
+              {
+                filename: pdfName
+                  ? pdfName
+                  : DEFAULT_PDF_NAME,
+                path: pdfPath
+                  ? pdfPath
+                  : DEFAULT_PDF_PATH,
+                contentType: 'application/pdf',
+              },
+            ],
+          }
+        : {}),
     });
 
     console.log(`✅ [v2] 이메일 전송 완료: ${receiver_email}`);
