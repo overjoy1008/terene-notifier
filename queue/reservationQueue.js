@@ -41,7 +41,7 @@ router.post("/CD", async (req, res) => {
     if (!orderId) return res.status(400).json({ error: "orderId required" })
     if (!["admin","customer"].includes(actor)) return res.status(400).json({ error: "actor invalid" })
     if (!["decline","cancel"].includes(cancelMode)) return res.status(400).json({ error: "cancelMode invalid" })
-    const id = enqueue({ kind: "CD", orderId, actor, cancelMode, testMode: !!testMode })
+    const id = enqueue({ kind: "CD", orderId, actor, cancelMode, testMode: !!testMode, lang })
     res.json({ ok: true, jobId: id })
   } catch (e) {
     res.status(500).json({ error: String(e?.message || e) })
@@ -52,7 +52,7 @@ router.post("/EF", async (req, res) => {
   try {
     const { orderId, testMode, lang } = req.body
     if (!orderId) return res.status(400).json({ error: "orderId required" })
-    const id = enqueue({ kind: "EF", orderId })
+    const id = enqueue({ kind: "EF", orderId, testMode: !!testMode, lang })
     res.json({ ok: true, jobId: id })
   } catch (e) {
     res.status(500).json({ error: String(e?.message || e) })
@@ -64,7 +64,7 @@ router.post("/JK", async (req, res) => {
     const { orderId, type, settlementInfo, settlement_url, testMode, lang } = req.body
     if (!orderId) return res.status(400).json({ error: "orderId required" })
     if (!["refund","additional"].includes(type)) return res.status(400).json({ error: "type invalid" })
-    const id = enqueue({ kind: "JK", orderId, type, settlementInfo, settlement_url: settlement_url || null })
+    const id = enqueue({ kind: "JK", orderId, type, settlementInfo, settlement_url: settlement_url || null, testMode: !!testMode, lang })
     res.json({ ok: true, jobId: id })
   } catch (e) {
     res.status(500).json({ error: String(e?.message || e) })
@@ -76,7 +76,7 @@ router.post("/L", async (req, res) => {
     const { orderId, type, settlementInfo, testMode } = req.body
     if (!orderId) return res.status(400).json({ error: "orderId required" })
     if (!["refund","additional","complete"].includes(type)) return res.status(400).json({ error: "type invalid" })
-    const id = enqueue({ kind: "L", orderId, type, settlementInfo: settlementInfo || null })
+    const id = enqueue({ kind: "L", orderId, type, settlementInfo: settlementInfo || null, testMode: !!testMode })
     res.json({ ok: true, jobId: id })
   } catch (e) {
     res.status(500).json({ error: String(e?.message || e) })
