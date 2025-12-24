@@ -64,7 +64,7 @@ router.post('/', async (req, res) => {
       subject: email_subject,
       text: email_body,
 
-      ...(language === 'foreign_en'
+      ...(language === 'foreign_en' && template_type === 'A'
         ? {
             attachments: [
               {
